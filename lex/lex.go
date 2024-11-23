@@ -9,6 +9,7 @@ type Lex struct {
 	ch      byte // current
 	pos     int
 	peekPos int
+	eof     bool
 }
 
 func New(input string) *Lex {
@@ -21,27 +22,27 @@ func (l *Lex) NextToken() token.Token {
 	c := l.nextChar()
 	switch c {
 	case 0:
-		return token.Token{Ttype: token.EOF, Literal: ""}
-	case '=', '+', '-', ',', '(', ')', '{', '}':
-		return token.Token{Ttype: builtins[string(c)], Literal: string(c)}
+		return token.Token{Type: token.EOF, Literal: ""}
+	case '=', '+', '-', ',', '(', ')', '{', '}', ';':
+		return token.Token{Type: builtins[string(c)], Literal: string(c)}
 	case '!':
 		if l.peek() == '=' {
 			l.nextChar()
-			return token.Token{Ttype: token.NEQ, Literal: "!="}
+			return token.Token{Type: token.NEQ, Literal: "!="}
 		}
-		return token.Token{Ttype: token.BANG, Literal: "!"}
+		return token.Token{Type: token.BANG, Literal: "!"}
 	default:
 		if isLetter(c) {
 			l.goBack()
 			word := l.takeWhile(isLetter)
-			return token.Token{Ttype: lookupIdentifier(word), Literal: word}
+			return token.Token{Type: lookupIdentifier(word), Literal: word}
 		}
 		if isDigit(c) {
 			l.goBack()
 			word := l.takeWhile(isDigit)
-			return token.Token{Ttype: token.INT, Literal: word}
+			return token.Token{Type: token.INT, Literal: word}
 		}
-		return token.Token{Ttype: token.ILLEGAL}
+		return token.Token{Type: token.ILLEGAL}
 	}
 }
 
@@ -63,6 +64,7 @@ func (l *Lex) skipWhitespace() {
 		l.nextChar()
 	}
 }
+
 func (l *Lex) takeWhile(pred func(c byte) bool) string {
 	start := l.pos
 	end := l.pos
@@ -70,13 +72,20 @@ func (l *Lex) takeWhile(pred func(c byte) bool) string {
 		end = l.pos
 		l.nextChar()
 	}
+	if !l.eof {
+		l.goBack()
+	}
 	return l.input[start:end]
 }
 
 func (l *Lex) nextChar() byte {
+	if l.eof {
+		return 0
+	}
 	if l.peekPos >= len(l.input) {
-		l.peekPos = 0
+		l.eof = true
 		l.ch = 0
+		return 0
 	} else {
 		l.ch = l.input[l.pos]
 		l.pos += 1
@@ -85,8 +94,8 @@ func (l *Lex) nextChar() byte {
 	return l.ch
 }
 
-var builtins map[string]token.TokenType = map[string]token.TokenType{
-	"=": token.EQ,
+var builtins map[string]token.Type = map[string]token.Type{
+	"=": token.ASSIGN,
 	"+": token.PLUS,
 	"-": token.MINUS,
 	",": token.COMMA,
@@ -94,12 +103,14 @@ var builtins map[string]token.TokenType = map[string]token.TokenType{
 	")": token.PCLOSE,
 	"{": token.LBRACK,
 	"}": token.RBRACK,
+	";": token.SEMICOLON,
 
+	"let":    token.LET,
 	"fn":     token.FUNC,
 	"return": token.RETURN,
 }
 
-func lookupIdentifier(ident string) token.TokenType {
+func lookupIdentifier(ident string) token.Type {
 	if ttype, ok := builtins[ident]; ok {
 		return ttype
 	}

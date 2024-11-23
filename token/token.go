@@ -1,31 +1,33 @@
 package token
 
-type TokenType string
+type Type string
 
 const (
-	IDENT   TokenType = "IDENT"
-	INT     TokenType = "INT"
-	ILLEGAL TokenType = "ILLEGAL"
-	COMMA   TokenType = ","
+	IDENT   Type = "IDENT"
+	INT     Type = "INT"
+	ILLEGAL Type = "ILLEGAL"
+	COMMA   Type = ","
 
-	POPEN  TokenType = "("
-	PCLOSE TokenType = ")"
-	LBRACK TokenType = "{"
-	RBRACK TokenType = "}"
+	POPEN  Type = "("
+	PCLOSE Type = ")"
+	LBRACK Type = "{"
+	RBRACK Type = "}"
 
-	FUNC   TokenType = "fn"
-	RETURN TokenType = "return"
+	FUNC   Type = "fn"
+	RETURN Type = "return"
+	LET    Type = "let"
 
-	EQ    TokenType = "EQ"
-	PLUS  TokenType = "+"
-	MINUS TokenType = "-"
-	BANG  TokenType = "!"
-	NEQ   TokenType = "!="
+	ASSIGN    Type = "EQ"
+	PLUS      Type = "+"
+	MINUS     Type = "-"
+	BANG      Type = "!"
+	NEQ       Type = "!="
+	SEMICOLON Type = "SEMICOLON"
 
-	EOF TokenType = "EOF"
+	EOF Type = "EOF"
 )
 
 type Token struct {
-	Ttype   TokenType
+	Type    Type
 	Literal string
 }
