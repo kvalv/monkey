@@ -36,12 +36,30 @@ func (p *Parser) advance() {
 
 // appends an error to the error list
 func (p *Parser) errorf(format string, a ...any) { p.errs = append(p.errs, fmt.Errorf(format, a...)) }
-func (p *Parser) errExpected(tp token.Type) {
-	p.errorf("Parse(): expected %v but got %v", tp, p.curr.Type)
+func (p *Parser) errExpected(tp ...token.Type) {
+	if len(tp) == 1 {
+		p.errorf("Parse(): expected %v but got %v", tp[0], p.curr.Type)
+	} else if len(tp) > 1 {
+		p.errorf("Parse(): expected one of %s, but got %v", tp, p.curr.Type)
+	}
 }
 
-func (p *Parser) currIsType(tp token.Type) bool { return p.curr.Type == tp }
-func (p *Parser) nextIsType(tp token.Type) bool { return p.next.Type == tp }
+func (p *Parser) currIsType(tp ...token.Type) bool {
+	for _, t := range tp {
+		if p.curr.Type == t {
+			return true
+		}
+	}
+	return false
+}
+func (p *Parser) nextIsType(tp ...token.Type) bool {
+	for _, t := range tp {
+		if p.next.Type == t {
+			return true
+		}
+	}
+	return false
+}
 
 func (p *Parser) Parse() (*ast.Program, []error) {
 	prog := &ast.Program{
@@ -59,9 +77,9 @@ func (p *Parser) Parse() (*ast.Program, []error) {
 
 // advances if the current token type matches ttype. Otherwise, it does not advance, and returns false.
 // The first value is the current token
-func (p *Parser) parseToken(ttype token.Type) (token.Token, bool) {
-	if !p.currIsType(ttype) {
-		p.errExpected(ttype)
+func (p *Parser) parseToken(ttype ...token.Type) (token.Token, bool) {
+	if !p.currIsType(ttype...) {
+		p.errExpected(ttype...)
 		return p.curr, false
 	}
 	tk := p.curr
@@ -70,11 +88,11 @@ func (p *Parser) parseToken(ttype token.Type) (token.Token, bool) {
 }
 
 func (p *Parser) parseIdentifier() *ast.Identifier {
-	iden, ok := p.parseToken(token.IDENT)
-	if !ok {
+	if p.curr.Type != token.IDENT {
+		p.errExpected(token.IDENT)
 		return nil
 	}
-	return &ast.Identifier{Token: iden, Value: iden.Literal}
+	return &ast.Identifier{Token: p.curr, Value: p.curr.Literal}
 }
 
 func (p *Parser) parseLetStatement() *ast.LetStatement {
@@ -111,26 +129,19 @@ func (p *Parser) parseStatement() ast.Statement {
 }
 
 func (p *Parser) parseExpression() ast.Expression {
-	switch p.curr.Type {
-	case token.IDENT:
-		return p.parseIdentifier()
-	case token.INT:
-		return p.parseNumber()
-	default:
-		p.errorf("parseExpression: unexpected token: %v", p.curr.Type)
-		return nil
-	}
+	p.errorf("Not yet implemented")
+	return nil
 }
 
 func (p *Parser) parseNumber() *ast.Number {
-	token, ok := p.parseToken(token.INT)
-	if !ok {
+	if p.curr.Type != token.IDENT {
+		p.errExpected(token.INT)
 		return nil
 	}
-	value, err := strconv.Atoi(token.Literal)
+	value, err := strconv.Atoi(p.curr.Literal)
 	if err != nil {
-		p.errorf("parseNumber: failed to parse as value: %v", err)
+		p.errorf("parseNumber: failed to parse as %q as number", p.curr.Literal)
 		return nil
 	}
-	return &ast.Number{Token: token, Value: value}
+	return &ast.Number{Token: p.curr, Value: value}
 }
