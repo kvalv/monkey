@@ -23,7 +23,7 @@ func (l *Lex) NextToken() token.Token {
 	switch c {
 	case 0:
 		return token.Token{Type: token.EOF, Literal: ""}
-	case '=', '+', '-', ',', '(', ')', '{', '}', ';':
+	case '*', '/', '=', '+', '-', ',', '(', ')', '{', '}', ';':
 		return token.Token{Type: builtins[string(c)], Literal: string(c)}
 	case '!':
 		if l.peek() == '=' {
@@ -98,6 +98,8 @@ var builtins map[string]token.Type = map[string]token.Type{
 	"=": token.ASSIGN,
 	"+": token.PLUS,
 	"-": token.MINUS,
+	"*": token.MUL,
+	"/": token.DIV,
 	",": token.COMMA,
 	"(": token.POPEN,
 	")": token.PCLOSE,

@@ -17,7 +17,9 @@ const (
 	RETURN Type = "return"
 	LET    Type = "let"
 
-	ASSIGN    Type = "EQ"
+	ASSIGN    Type = "="
+	MUL       Type = "*"
+	DIV       Type = "/"
 	PLUS      Type = "+"
 	MINUS     Type = "-"
 	BANG      Type = "!"

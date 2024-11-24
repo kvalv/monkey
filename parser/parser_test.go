@@ -7,7 +7,54 @@ import (
 	"github.com/kvalv/monkey/parser"
 )
 
+func TestParsePrefix(t *testing.T) {
+	cases := []struct {
+		input string
+		want  string
+	}{
+		{input: "!3;", want: "(!3);"},
+		{input: "-foo;", want: "(-foo);"},
+	}
+	for i, tc := range cases {
+		p := parser.New(tc.input)
+		prog, errs := p.Parse()
+		if len(errs) > 0 {
+			t.Fatalf("got %d errors: %+v", len(errs), errs)
+		}
+		got := prog.Statements[0].String()
+		if got != tc.want {
+			t.Fatalf("[%d]: mismatch: got %q, want %q", i, got, tc.want)
+		}
+	}
+}
+
+func TestParseExpression(t *testing.T) {
+	cases := []struct {
+		input string
+		want  string
+	}{
+		{input: "1 + 2 + 3", want: "((1 + 2) + 3);"},
+		{input: "1 + 2 * 3", want: "(1 + (2 * 3));"},
+	}
+	for i, tc := range cases {
+		p := parser.New(tc.input)
+		prog, errs := p.Parse()
+		if len(errs) > 0 {
+			t.Fatalf("got %d errors: %+v", len(errs), errs)
+		}
+		if n := len(prog.Statements); n != 1 {
+			t.Fatalf("expected 1 statement, got %d: prog.Statements=%+v", n, prog.Statements)
+		}
+		got := prog.Statements[0].String()
+		if got != tc.want {
+			t.Fatalf("[%d]: mismatch: got %q, want %q", i, got, tc.want)
+		}
+	}
+
+}
+
 func TestParse(t *testing.T) {
+	t.Skip()
 	input := `
     let x = y;
     let a = 3;

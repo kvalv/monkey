@@ -81,7 +81,7 @@ type PrefixExpression struct {
 
 func (n *PrefixExpression) TokenLiteral() string { return n.Token.Literal }
 func (n *PrefixExpression) expr()                {}
-func (n *PrefixExpression) String() string       { return fmt.Sprintf("(%s %s)", n.Op, n.Rhs) }
+func (n *PrefixExpression) String() string       { return fmt.Sprintf("(%s%s)", n.Op, n.Rhs) }
 
 type InfixExpression struct {
 	token.Token

@@ -9,7 +9,7 @@ import (
 )
 
 func TestNextToken(t *testing.T) {
-	input := `=+-,!; != foo fn return {} () 1 11 `
+	input := `=+-,!*; != foo fn return {} () 1 11 `
 	l := lex.New(input)
 	expected := []token.Token{
 		{Type: token.ASSIGN, Literal: "="},
@@ -17,6 +17,7 @@ func TestNextToken(t *testing.T) {
 		{Type: token.MINUS, Literal: "-"},
 		{Type: token.COMMA, Literal: ","},
 		{Type: token.BANG, Literal: "!"},
+		{Type: token.MUL, Literal: "*"},
 		{Type: token.SEMICOLON, Literal: ";"},
 		{Type: token.NEQ, Literal: "!="},
 		{Type: token.IDENT, Literal: "foo"},
@@ -28,6 +29,23 @@ func TestNextToken(t *testing.T) {
 		{Type: token.PCLOSE, Literal: ")"},
 		{Type: token.INT, Literal: "1"},
 		{Type: token.INT, Literal: "11"},
+		{Type: token.EOF, Literal: ""},
+	}
+	for i, exp := range expected {
+		if got := l.NextToken(); got.Type != exp.Type {
+			t.Fatalf("%d: unexpected TokenType: expected %+v, got %+v", i, exp, got)
+		} else if got.Literal != exp.Literal {
+			t.Fatalf("%d: unexpected Literal: expected %+v, got %+v", i, exp, got)
+		}
+	}
+}
+
+func TestPrefix(t *testing.T) {
+	l := lex.New("!3;")
+	expected := []token.Token{
+		{Type: token.BANG, Literal: "!"},
+		{Type: token.INT, Literal: "3"},
+		{Type: token.SEMICOLON, Literal: ";"},
 		{Type: token.EOF, Literal: ""},
 	}
 	for i, exp := range expected {

@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/kvalv/monkey/ast"
@@ -10,18 +9,35 @@ import (
 	"github.com/kvalv/monkey/token"
 )
 
+type PrefixFn func(precedence int) ast.Expression
+type InfixFn func(precedence int, lhs ast.Expression) ast.Expression
+
 type Parser struct {
 	l          *lex.Lex
 	curr, next token.Token
 	errs       []error
+
+	prefixFns map[token.Type]PrefixFn
+	infixFns  map[token.Type]InfixFn
 }
 
 func New(input string) *Parser {
 	p := &Parser{
-		l: lex.New(input),
+		l:         lex.New(input),
+		prefixFns: make(map[token.Type]PrefixFn),
+		infixFns:  make(map[token.Type]InfixFn),
 	}
 	p.advance() // populate curr and next
 	p.advance()
+	p.prefixFns[token.BANG] = p.parsePrefixExpression
+	p.prefixFns[token.MINUS] = p.parsePrefixExpression
+	p.prefixFns[token.INT] = p.parseNumber
+	p.prefixFns[token.IDENT] = p.parseIdentifier
+
+	p.infixFns[token.PLUS] = p.parseInfixExpression
+	p.infixFns[token.MINUS] = p.parseInfixExpression
+	p.infixFns[token.MUL] = p.parseInfixExpression
+	p.infixFns[token.DIV] = p.parseInfixExpression
 	return p
 }
 func (p *Parser) advance() {
@@ -30,7 +46,6 @@ func (p *Parser) advance() {
 		return
 	}
 	p.curr = p.next
-	log.Printf("advance: curr is now %+v", p.curr)
 	p.next = p.l.NextToken()
 }
 
@@ -66,7 +81,11 @@ func (p *Parser) Parse() (*ast.Program, []error) {
 		Statements: []ast.Statement{},
 	}
 	for !p.currIsType(token.EOF) {
-		if stmt := p.parseStatement(); stmt != nil {
+		if len(p.errs) > 0 { // hack - remove
+			break
+		}
+		stmt := p.parseStatement()
+		if stmt != nil {
 			prog.Statements = append(prog.Statements, stmt)
 		} else {
 			break
@@ -87,7 +106,7 @@ func (p *Parser) parseToken(ttype ...token.Type) (token.Token, bool) {
 	return tk, true
 }
 
-func (p *Parser) parseIdentifier() *ast.Identifier {
+func (p *Parser) parseIdentifier(precedence int) ast.Expression {
 	if p.curr.Type != token.IDENT {
 		p.errExpected(token.IDENT)
 		return nil
@@ -95,7 +114,7 @@ func (p *Parser) parseIdentifier() *ast.Identifier {
 	return &ast.Identifier{Token: p.curr, Value: p.curr.Literal}
 }
 
-func (p *Parser) parseLetStatement() *ast.LetStatement {
+func (p *Parser) parseLetStatement(precedence int) *ast.LetStatement {
 	var (
 		stmt ast.LetStatement
 		ok   bool
@@ -103,13 +122,15 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	if stmt.Token, ok = p.parseToken(token.LET); !ok {
 		return nil
 	}
-	if stmt.Lhs = p.parseIdentifier(); stmt.Lhs == nil {
+	lhs := p.parseIdentifier(precedence)
+	if lhs == nil {
 		return nil
 	}
+	stmt.Lhs = lhs.(*ast.Identifier) // also probably not ideal..
 	if _, ok = p.parseToken(token.ASSIGN); !ok {
 		return nil
 	}
-	if stmt.Rhs = p.parseExpression(); stmt.Rhs == nil {
+	if stmt.Rhs = p.parseExpression(LOWEST); stmt.Rhs == nil {
 		return nil
 	}
 	if _, ok = p.parseToken(token.SEMICOLON); !ok {
@@ -117,24 +138,75 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	}
 	return &stmt
 }
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	expr := &ast.ExpressionStatement{Token: p.curr}
+	exp := p.parseExpression(LOWEST)
+	if exp == nil {
+		return nil
+	}
+	expr.Expr = exp
+	p.advance()
+	if p.curr.Type == token.SEMICOLON {
+		// semicolons are optional and ignored in expression statements
+		// ... so we can omit semicolons in the repl
+		p.advance()
+	}
+	return expr
+}
 
 func (p *Parser) parseStatement() ast.Statement {
 	switch p.curr.Type {
 	case token.LET:
-		return p.parseLetStatement()
+		return p.parseLetStatement(LOWEST)
 	default:
-		p.errorf("parseStatement: unexpected token: %v", p.curr.Type)
-		return nil
+		got := p.parseExpressionStatement()
+		return got
 	}
 }
 
-func (p *Parser) parseExpression() ast.Expression {
-	p.errorf("Not yet implemented")
-	return nil
+func (p *Parser) parsePrefixExpression(precedence int) ast.Expression {
+	exp := ast.PrefixExpression{Token: p.curr, Op: p.curr.Literal}
+	p.advance()
+	rhs := p.parseExpression(precedence)
+	if rhs == nil {
+		return nil
+	}
+	exp.Rhs = rhs
+	return &exp
 }
 
-func (p *Parser) parseNumber() *ast.Number {
-	if p.curr.Type != token.IDENT {
+func (p *Parser) parseInfixExpression(precedence int, lhs ast.Expression) ast.Expression {
+	exp := ast.InfixExpression{Token: p.curr, Op: p.curr.Literal, Lhs: lhs}
+	p.advance()
+	if exp.Rhs = p.parseExpression(precedence); exp.Rhs == nil {
+		return nil
+	}
+	return &exp
+}
+
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	fn, ok := p.prefixFns[p.curr.Type]
+	if !ok {
+		p.errorf("prefixFn not found for type %v", p.curr.Type)
+		return nil
+	}
+	expr := fn(precedence)
+
+	for p.next.Type != token.SEMICOLON && precedence < tokenPrecedence(p.next.Type) {
+		p.advance()
+		fn, ok := p.infixFns[p.curr.Type]
+		if !ok {
+			p.errorf("infixFn not found for type %v", p.next.Type)
+			return nil
+		}
+		expr = fn(tokenPrecedence(p.curr.Type), expr)
+	}
+
+	return expr
+}
+
+func (p *Parser) parseNumber(precedence int) ast.Expression {
+	if p.curr.Type != token.INT {
 		p.errExpected(token.INT)
 		return nil
 	}
