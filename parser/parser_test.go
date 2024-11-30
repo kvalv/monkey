@@ -137,6 +137,8 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{"5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"},
 		{" 3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
 		{"3 > 5 == false", "((3 > 5) == false)"},
+		{"(3 + 4) * 5", "((3 + 4) * 5)"},
+		{"3 + (4 + 5)", "(3 + (4 + 5))"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {

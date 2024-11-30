@@ -35,6 +35,7 @@ func New(input string) *Parser {
 	p.prefixFns[token.IDENT] = p.parseIdentifier
 	p.prefixFns[token.TRUE] = p.parseBoolean
 	p.prefixFns[token.FALSE] = p.parseBoolean
+	p.prefixFns[token.POPEN] = p.parseGroupExpression
 
 	p.infixFns[token.EQ] = p.parseInfixExpression
 	p.infixFns[token.PLUS] = p.parseInfixExpression
@@ -145,6 +146,18 @@ func (p *Parser) parseLetStatement(precedence int) *ast.LetStatement {
 		return nil
 	}
 	return &stmt
+}
+
+func (p *Parser) parseGroupExpression() ast.Expression {
+	defer trace("parseGroupExpression", p.curr)(nil)
+	p.advance()
+	exp := p.parseExpression(LOWEST)
+	if p.next.Type != token.PCLOSE {
+		p.errExpected(token.PCLOSE)
+		return nil
+	}
+	p.advance()
+	return exp
 }
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	expr := &ast.ExpressionStatement{Token: p.curr}
