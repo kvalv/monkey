@@ -31,7 +31,7 @@ func (n *Program) stmt()                {}
 func (n *Program) String() string {
 	buf := bytes.Buffer{}
 	for _, stmt := range n.Statements {
-		fmt.Fprintf(&buf, "%s\n", stmt)
+		fmt.Fprintf(&buf, "%s", stmt)
 	}
 	return buf.String()
 }
@@ -42,7 +42,7 @@ type LetStatement struct {
 	Rhs Expression
 }
 
-func (n *LetStatement) String() string       { return fmt.Sprintf("let %s = %s;", n.Lhs, n.Rhs) }
+func (n *LetStatement) String() string       { return fmt.Sprintf("let %s = %s", n.Lhs, n.Rhs) }
 func (n *LetStatement) TokenLiteral() string { return n.Token.Literal }
 func (n *LetStatement) stmt()                {}
 
@@ -53,7 +53,7 @@ type ExpressionStatement struct {
 
 func (n *ExpressionStatement) TokenLiteral() string { return n.Token.Literal }
 func (n *ExpressionStatement) stmt()                {}
-func (n *ExpressionStatement) String() string       { return fmt.Sprintf("%s;", n.Expr) }
+func (n *ExpressionStatement) String() string       { return fmt.Sprintf("%s", n.Expr) }
 
 type Identifier struct {
 	token.Token

@@ -9,7 +9,7 @@ import (
 	"github.com/kvalv/monkey/token"
 )
 
-type PrefixFn func(precedence int) ast.Expression
+type PrefixFn func() ast.Expression
 type InfixFn func(precedence int, lhs ast.Expression) ast.Expression
 
 type Parser struct {
@@ -34,10 +34,13 @@ func New(input string) *Parser {
 	p.prefixFns[token.INT] = p.parseNumber
 	p.prefixFns[token.IDENT] = p.parseIdentifier
 
+	p.infixFns[token.EQ] = p.parseInfixExpression
 	p.infixFns[token.PLUS] = p.parseInfixExpression
 	p.infixFns[token.MINUS] = p.parseInfixExpression
 	p.infixFns[token.MUL] = p.parseInfixExpression
 	p.infixFns[token.DIV] = p.parseInfixExpression
+	p.infixFns[token.GT] = p.parseInfixExpression
+	p.infixFns[token.Lt] = p.parseInfixExpression
 	return p
 }
 func (p *Parser) advance() {
@@ -106,23 +109,26 @@ func (p *Parser) parseToken(ttype ...token.Type) (token.Token, bool) {
 	return tk, true
 }
 
-func (p *Parser) parseIdentifier(precedence int) ast.Expression {
+func (p *Parser) parseIdentifier() ast.Expression {
+	var out ast.Identifier
+	defer trace("parseIdentifier", p.curr)(&out)
 	if p.curr.Type != token.IDENT {
 		p.errExpected(token.IDENT)
 		return nil
 	}
-	return &ast.Identifier{Token: p.curr, Value: p.curr.Literal}
+	out.Token = p.curr
+	out.Value = p.curr.Literal
+	return &out
 }
 
 func (p *Parser) parseLetStatement(precedence int) *ast.LetStatement {
-	var (
-		stmt ast.LetStatement
-		ok   bool
-	)
+	var stmt ast.LetStatement
+	defer trace("parseLetStatement", p.curr)(&stmt)
+	var ok bool
 	if stmt.Token, ok = p.parseToken(token.LET); !ok {
 		return nil
 	}
-	lhs := p.parseIdentifier(precedence)
+	lhs := p.parseIdentifier()
 	if lhs == nil {
 		return nil
 	}
@@ -140,6 +146,7 @@ func (p *Parser) parseLetStatement(precedence int) *ast.LetStatement {
 }
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	expr := &ast.ExpressionStatement{Token: p.curr}
+	defer trace("parseExpressionStatement", p.curr)(expr)
 	exp := p.parseExpression(LOWEST)
 	if exp == nil {
 		return nil
@@ -155,19 +162,22 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 }
 
 func (p *Parser) parseStatement() ast.Statement {
+	var out ast.Statement
+	defer trace("parseStatement", p.curr)(out)
 	switch p.curr.Type {
 	case token.LET:
-		return p.parseLetStatement(LOWEST)
+		out = p.parseLetStatement(LOWEST)
 	default:
-		got := p.parseExpressionStatement()
-		return got
+		out = p.parseExpressionStatement()
 	}
+	return out
 }
 
-func (p *Parser) parsePrefixExpression(precedence int) ast.Expression {
+func (p *Parser) parsePrefixExpression() ast.Expression {
 	exp := ast.PrefixExpression{Token: p.curr, Op: p.curr.Literal}
+	defer trace("parsePrefixExpression", p.curr)(&exp)
 	p.advance()
-	rhs := p.parseExpression(precedence)
+	rhs := p.parseExpression(PREFIX)
 	if rhs == nil {
 		return nil
 	}
@@ -176,7 +186,9 @@ func (p *Parser) parsePrefixExpression(precedence int) ast.Expression {
 }
 
 func (p *Parser) parseInfixExpression(precedence int, lhs ast.Expression) ast.Expression {
-	exp := ast.InfixExpression{Token: p.curr, Op: p.curr.Literal, Lhs: lhs}
+	var exp ast.InfixExpression
+	defer trace("parseInfixExpression", p.curr)(&exp)
+	exp = ast.InfixExpression{Token: p.curr, Op: p.curr.Literal, Lhs: lhs}
 	p.advance()
 	if exp.Rhs = p.parseExpression(precedence); exp.Rhs == nil {
 		return nil
@@ -185,12 +197,14 @@ func (p *Parser) parseInfixExpression(precedence int, lhs ast.Expression) ast.Ex
 }
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
+	var expr ast.Expression
+	defer trace("parseExpression", p.curr)(expr)
 	fn, ok := p.prefixFns[p.curr.Type]
 	if !ok {
 		p.errorf("prefixFn not found for type %v", p.curr.Type)
 		return nil
 	}
-	expr := fn(precedence)
+	expr = fn()
 
 	for p.next.Type != token.SEMICOLON && precedence < tokenPrecedence(p.next.Type) {
 		p.advance()
@@ -205,7 +219,9 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	return expr
 }
 
-func (p *Parser) parseNumber(precedence int) ast.Expression {
+func (p *Parser) parseNumber() ast.Expression {
+	var out ast.Number
+	defer trace("parseNumber", p.curr)(&out)
 	if p.curr.Type != token.INT {
 		p.errExpected(token.INT)
 		return nil
@@ -215,5 +231,7 @@ func (p *Parser) parseNumber(precedence int) ast.Expression {
 		p.errorf("parseNumber: failed to parse as %q as number", p.curr.Literal)
 		return nil
 	}
-	return &ast.Number{Token: p.curr, Value: value}
+	out.Token = p.curr
+	out.Value = value
+	return &out
 }

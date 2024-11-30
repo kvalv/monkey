@@ -6,6 +6,7 @@ const (
 	_ int = iota
 	LOWEST
 	EQ
+	LESSGREATER
 	SUM
 	PRODUCT
 	PREFIX
@@ -13,11 +14,14 @@ const (
 )
 
 var lookup map[token.Type]int = map[token.Type]int{
+	token.EQ:    EQ,
 	token.BANG:  PREFIX,
 	token.DIV:   PRODUCT,
 	token.MINUS: SUM,
 	token.MUL:   PRODUCT,
 	token.PLUS:  SUM,
+	token.GT:    LESSGREATER,
+	token.Lt:    LESSGREATER,
 }
 
 func tokenPrecedence(ttype token.Type) int {
