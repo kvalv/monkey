@@ -118,9 +118,41 @@ func TestPrefixParse(t *testing.T) {
 	}
 	stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
 	if !ok {
-		t.Fatalf("expected ExpressionStatement got %T", stmt)
+		t.Fatalf("expected ExpressionStatement got %T", prog.Statements[0])
 	}
 	expectLiteral(t, stmt.Expr, 3)
+}
+
+func TestFunctionLiteral(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{"fn () { 2 }", "fn() {2}"},
+		{"fn (x) { x + 2 }", "fn(x) {(x + 2)}"},
+		{"fn (x, y) { x + y }", "fn(x, y) {(x + y)}"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			p := parser.New(tc.input)
+			prog, err := p.Parse()
+			if err != nil {
+				t.Fatalf("got error %v", err)
+			}
+			if n := len(prog.Statements); n != 1 {
+				t.Fatalf("expected 1 statement but got %d", n)
+			}
+			stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
+			if !ok {
+				t.Fatalf("expected FunctionLiteral got %T", prog.Statements[0])
+			}
+			f, ok := stmt.Expr.(*ast.FunctionLiteral)
+			if !ok {
+				t.Fatalf("expected *FunctionLiteral got %T", stmt)
+			}
+			got := f.String()
+			if got != tc.expected {
+				t.Fatalf("string mismatch: expected %q, got %q", tc.expected, got)
+			}
+		})
+	}
 }
 
 func TestOperatorPrecedenceParsing(t *testing.T) {

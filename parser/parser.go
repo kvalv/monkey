@@ -37,6 +37,7 @@ func New(input string) *Parser {
 	p.prefixFns[token.FALSE] = p.parseBoolean
 	p.prefixFns[token.POPEN] = p.parseGroupExpression
 	p.prefixFns[token.IF] = p.parseIfExpression
+	p.prefixFns[token.FUNC] = p.parseFunctionLiteral
 
 	p.infixFns[token.EQ] = p.parseInfixExpression
 	p.infixFns[token.PLUS] = p.parseInfixExpression
@@ -306,5 +307,47 @@ func (p *Parser) parseNumber() ast.Expression {
 	}
 	out.Token = p.curr
 	out.Value = value
+	return &out
+}
+
+func (p *Parser) parseParamList() []ast.Identifier {
+	out := []ast.Identifier{}
+	if p.curr.Type != token.POPEN {
+		p.errExpected(token.POPEN)
+		return nil
+	}
+	p.advance()
+
+	for {
+		switch p.curr.Type {
+		case token.IDENT:
+			out = append(out, *p.parseIdentifier().(*ast.Identifier))
+			p.advance()
+		case token.COMMA:
+			p.advance()
+		case token.PCLOSE:
+			return out
+		default:
+			p.errExpected(token.IDENT, token.COMMA)
+			return nil
+		}
+	}
+}
+
+func (p *Parser) parseFunctionLiteral() ast.Expression {
+	out := ast.FunctionLiteral{Token: p.curr}
+	defer trace("parseFunctionLiteral", p.curr)(&out)
+	if p.curr.Type != token.FUNC {
+		p.errExpected(token.FUNC)
+		return nil
+	}
+	p.advance()
+	if out.Params = p.parseParamList(); out.Params == nil {
+		return nil
+	}
+	p.advance()
+	if out.Body = p.parseBlockStatement(); out.Body == nil {
+		return nil
+	}
 	return &out
 }

@@ -3,6 +3,7 @@ package ast
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/kvalv/monkey/token"
 )
@@ -110,11 +111,16 @@ type BlockStatement struct {
 func (n *BlockStatement) TokenLiteral() string { return n.Token.Literal }
 func (n *BlockStatement) stmt()                {}
 func (n *BlockStatement) String() string {
-	buf := bytes.Buffer{}
-	for _, stmt := range n.Statements {
-		fmt.Fprintf(&buf, "%s", stmt)
+	if n == nil {
+		return "<BlockStatement:nil>"
 	}
-	return buf.String()
+	w := &bytes.Buffer{}
+	fmt.Fprintf(w, "{")
+	for _, stmt := range n.Statements {
+		fmt.Fprintf(w, "%s", stmt)
+	}
+	fmt.Fprint(w, "}")
+	return w.String()
 }
 
 type IfExpression struct {
@@ -135,4 +141,20 @@ func (n *IfExpression) String() string {
 		fmt.Fprintf(w, " else %s", n.Else.String())
 	}
 	return w.String()
+}
+
+type FunctionLiteral struct {
+	token.Token
+	Params []Identifier
+	Body   *BlockStatement
+}
+
+func (n *FunctionLiteral) TokenLiteral() string { return n.Token.Literal }
+func (n *FunctionLiteral) expr()                {}
+func (n *FunctionLiteral) String() string {
+	var params []string
+	for _, p := range n.Params {
+		params = append(params, p.String())
+	}
+	return fmt.Sprintf("fn(%s) %s", strings.Join(params, ", "), n.Body.String())
 }
