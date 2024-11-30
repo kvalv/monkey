@@ -15,6 +15,13 @@ type Lex struct {
 func New(input string) *Lex {
 	return &Lex{input: input}
 }
+
+func (l *Lex) create(tp token.Type, lit string) token.Token {
+	end := l.pos
+	start := end - len(lit)
+	return token.Token{Type: tp, Literal: lit, Span: token.Span{Start: start, End: end}}
+}
+
 func (l *Lex) NextToken() token.Token {
 
 	l.skipWhitespace()
@@ -22,33 +29,33 @@ func (l *Lex) NextToken() token.Token {
 	c := l.nextChar()
 	switch c {
 	case 0:
-		return token.Token{Type: token.EOF, Literal: ""}
+		return l.create(token.EOF, "")
 	case '*', '/', '+', '-', ',', '(', ')', '{', '}', ';', '>', '<':
-		return token.Token{Type: builtins[string(c)], Literal: string(c)}
+		return l.create(builtins[string(c)], string(c))
 	case '=':
 		if l.peek() == '=' {
 			l.nextChar()
-			return token.Token{Type: token.EQ, Literal: "=="}
+			return l.create(token.EQ, "==")
 		}
-		return token.Token{Type: token.ASSIGN, Literal: "="}
+		return l.create(token.ASSIGN, "=")
 	case '!':
 		if l.peek() == '=' {
 			l.nextChar()
-			return token.Token{Type: token.NEQ, Literal: "!="}
+			return l.create(token.NEQ, "!=")
 		}
-		return token.Token{Type: token.BANG, Literal: "!"}
+		return l.create(token.BANG, "!")
 	default:
 		if isLetter(c) {
 			l.goBack()
 			word := l.takeWhile(isLetter)
-			return token.Token{Type: lookupIdentifier(word), Literal: word}
+			return l.create(lookupIdentifier(word), word)
 		}
 		if isDigit(c) {
 			l.goBack()
 			word := l.takeWhile(isDigit)
-			return token.Token{Type: token.INT, Literal: word}
+			return l.create(token.INT, word)
 		}
-		return token.Token{Type: token.ILLEGAL}
+		return l.create(token.ILLEGAL, string(c))
 	}
 }
 

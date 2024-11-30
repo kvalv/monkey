@@ -36,7 +36,13 @@ const (
 	EOF Type = "EOF"
 )
 
+type Span struct {
+	Start, End int
+}
+
 type Token struct {
 	Type    Type
 	Literal string
+	// Span marks the position from start (inclusive) to end (exclusive)
+	Span
 }

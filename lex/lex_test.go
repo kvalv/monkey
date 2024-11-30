@@ -47,6 +47,27 @@ func TestNextToken(t *testing.T) {
 	}
 }
 
+func TestSpan(t *testing.T) {
+	l := lex.New("the cat  sat fn @")
+	expected := []token.Token{
+		{Type: token.IDENT, Literal: "the", Span: token.Span{Start: 0, End: 3}},
+		{Type: token.IDENT, Literal: "cat", Span: token.Span{Start: 4, End: 7}},
+		{Type: token.IDENT, Literal: "sat", Span: token.Span{Start: 9, End: 12}},
+		{Type: token.IDENT, Literal: "fn", Span: token.Span{Start: 13, End: 15}},
+		{Type: token.IDENT, Literal: "@", Span: token.Span{Start: 16, End: 17}},
+		{Type: token.EOF, Literal: "", Span: token.Span{Start: 17, End: 17}},
+	}
+	for _, exp := range expected {
+		got := l.NextToken()
+		if got.Span.Start != exp.Span.Start {
+			t.Fatalf("span start mismatch: expected %d got %d - token = %+v", exp.Span.Start, got.Span.Start, got)
+		}
+		if got.Span.End != exp.Span.End {
+			t.Fatalf("span end mismatch: expected %d got %d - token = %+v", exp.Span.End, got.Span.End, got)
+		}
+	}
+}
+
 func TestPrefix(t *testing.T) {
 	l := lex.New("!3;")
 	expected := []token.Token{
