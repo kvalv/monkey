@@ -22,6 +22,7 @@ var lookup map[token.Type]int = map[token.Type]int{
 	token.PLUS:  SUM,
 	token.GT:    LESSGREATER,
 	token.Lt:    LESSGREATER,
+	token.POPEN: FUNCTION_CALL,
 }
 
 func tokenPrecedence(ttype token.Type) int {

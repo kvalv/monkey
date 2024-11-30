@@ -46,6 +46,7 @@ func New(input string) *Parser {
 	p.infixFns[token.DIV] = p.parseInfixExpression
 	p.infixFns[token.GT] = p.parseInfixExpression
 	p.infixFns[token.Lt] = p.parseInfixExpression
+	p.infixFns[token.POPEN] = p.parseCallExpression // todo: function call
 	return p
 }
 func (p *Parser) advance() {
@@ -61,9 +62,9 @@ func (p *Parser) advance() {
 func (p *Parser) errorf(format string, a ...any) { p.errs = append(p.errs, fmt.Errorf(format, a...)) }
 func (p *Parser) errExpected(tp ...token.Type) {
 	if len(tp) == 1 {
-		p.errorf("Parse(): expected %v but got %v", tp[0], p.curr.Type)
+		p.errorf("Parse(): expected %v but got %v at %d..%d", tp[0], p.curr.Type, p.curr.Start, p.curr.End)
 	} else if len(tp) > 1 {
-		p.errorf("Parse(): expected one of %s, but got %v", tp, p.curr.Type)
+		p.errorf("Parse(): expected one of %s, but got %v at %d..%d", tp, p.curr.Type, p.curr.Start, p.curr.End)
 	}
 }
 
@@ -116,7 +117,7 @@ func (p *Parser) parseToken(ttype ...token.Type) (token.Token, bool) {
 
 func (p *Parser) parseIdentifier() ast.Expression {
 	var out ast.Identifier
-	defer trace("parseIdentifier", p.curr)(&out)
+	defer trace("parseIdentifier")(&out)
 	if p.curr.Type != token.IDENT {
 		p.errExpected(token.IDENT)
 		return nil
@@ -128,7 +129,7 @@ func (p *Parser) parseIdentifier() ast.Expression {
 
 func (p *Parser) parseLetStatement(precedence int) *ast.LetStatement {
 	var stmt ast.LetStatement
-	defer trace("parseLetStatement", p.curr)(&stmt)
+	defer trace("parseLetStatement")(&stmt)
 	var ok bool
 	if stmt.Token, ok = p.parseToken(token.LET); !ok {
 		return nil
@@ -151,7 +152,7 @@ func (p *Parser) parseLetStatement(precedence int) *ast.LetStatement {
 }
 
 func (p *Parser) parseGroupExpression() ast.Expression {
-	defer trace("parseGroupExpression", p.curr)(nil)
+	defer trace("parseGroupExpression")(nil)
 	p.advance()
 	exp := p.parseExpression(LOWEST)
 	if p.next.Type != token.PCLOSE {
@@ -163,7 +164,7 @@ func (p *Parser) parseGroupExpression() ast.Expression {
 }
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	expr := &ast.ExpressionStatement{Token: p.curr}
-	defer trace("parseExpressionStatement", p.curr)(expr)
+	defer trace("parseExpressionStatement")(expr)
 	exp := p.parseExpression(LOWEST)
 	if exp == nil {
 		return nil
@@ -180,7 +181,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 
 func (p *Parser) parseStatement() ast.Statement {
 	var out ast.Statement
-	defer trace("parseStatement", p.curr)(out)
+	defer trace("parseStatement")(out)
 	switch p.curr.Type {
 	case token.LET:
 		out = p.parseLetStatement(LOWEST)
@@ -192,7 +193,7 @@ func (p *Parser) parseStatement() ast.Statement {
 
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	exp := ast.PrefixExpression{Token: p.curr, Op: p.curr.Literal}
-	defer trace("parsePrefixExpression", p.curr)(&exp)
+	defer trace("parsePrefixExpression")(&exp)
 	p.advance()
 	rhs := p.parseExpression(PREFIX)
 	if rhs == nil {
@@ -204,7 +205,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 
 func (p *Parser) parseInfixExpression(precedence int, lhs ast.Expression) ast.Expression {
 	var exp ast.InfixExpression
-	defer trace("parseInfixExpression", p.curr)(&exp)
+	defer trace("parseInfixExpression")(&exp)
 	exp = ast.InfixExpression{Token: p.curr, Op: p.curr.Literal, Lhs: lhs}
 	p.advance()
 	if exp.Rhs = p.parseExpression(precedence); exp.Rhs == nil {
@@ -215,7 +216,7 @@ func (p *Parser) parseInfixExpression(precedence int, lhs ast.Expression) ast.Ex
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	var expr ast.Expression
-	defer trace("parseExpression", p.curr)(expr)
+	defer trace("parseExpression")(expr)
 	fn, ok := p.prefixFns[p.curr.Type]
 	if !ok {
 		p.errorf("prefixFn not found for type %v", p.curr.Type)
@@ -238,7 +239,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 func (p *Parser) parseIfExpression() ast.Expression {
 	var out ast.IfExpression
-	defer trace("parseIfExpression", p.curr)(&out)
+	defer trace("parseIfExpression")(&out)
 	out.Token = p.curr
 	p.advance()
 	if out.Cond = p.parseExpression(LOWEST); out.Cond == nil {
@@ -260,7 +261,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	out := ast.BlockStatement{Statements: []ast.Statement{}}
-	defer trace("parseBlockStatement", p.curr)(&out)
+	defer trace("parseBlockStatement")(&out)
 	out.Token = p.curr
 	if p.curr.Type != token.LBRACK {
 		p.errExpected(token.LBRACK)
@@ -283,7 +284,7 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 
 func (p *Parser) parseBoolean() ast.Expression {
 	var out ast.Boolean
-	defer trace("parseBoolean", p.curr)(&out)
+	defer trace("parseBoolean")(&out)
 	if !(p.curr.Type == token.FALSE || p.curr.Type == token.TRUE) {
 		p.errExpected(token.FALSE, token.TRUE)
 		return nil
@@ -295,7 +296,7 @@ func (p *Parser) parseBoolean() ast.Expression {
 
 func (p *Parser) parseNumber() ast.Expression {
 	var out ast.Number
-	defer trace("parseNumber", p.curr)(&out)
+	defer trace("parseNumber")(&out)
 	if p.curr.Type != token.INT {
 		p.errExpected(token.INT)
 		return nil
@@ -336,7 +337,7 @@ func (p *Parser) parseParamList() []ast.Identifier {
 
 func (p *Parser) parseFunctionLiteral() ast.Expression {
 	out := ast.FunctionLiteral{Token: p.curr}
-	defer trace("parseFunctionLiteral", p.curr)(&out)
+	defer trace("parseFunctionLiteral")(&out)
 	if p.curr.Type != token.FUNC {
 		p.errExpected(token.FUNC)
 		return nil
@@ -350,4 +351,37 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 		return nil
 	}
 	return &out
+}
+func (p *Parser) parseCallArguments() []ast.Expression {
+	args := []ast.Expression{}
+	if p.next.Type == token.PCLOSE {
+		p.advance()
+		return args
+	}
+	p.advance()
+	args = append(args, p.parseExpression(LOWEST))
+
+	for p.next.Type == token.COMMA {
+		p.advance()
+		p.advance()
+		args = append(args, p.parseExpression(LOWEST))
+	}
+
+	if p.next.Type != token.PCLOSE {
+		p.errExpected(token.PCLOSE)
+		return nil
+	}
+	p.advance()
+	return args
+}
+
+func (p *Parser) parseCallExpression(precedence int, left ast.Expression) ast.Expression {
+	out := &ast.CallExpression{}
+	defer trace("parseCallExpression")(out)
+	out.Name = left
+	out.Params = p.parseCallArguments()
+	if out.Params == nil {
+		panic("params nil")
+	}
+	return out
 }

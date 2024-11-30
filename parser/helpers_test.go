@@ -34,7 +34,7 @@ func expectNumberLiteral(t *testing.T, got ast.Expression, value int) {
 		t.Fatalf("expected number - got %T", got)
 	}
 	if e.Value != value {
-		t.Fatalf("value mismatch: expected %d but got %d", value, e.Value)
+		t.Fatalf("expectNumberLiteral: expected %d but got %d", value, e.Value)
 	}
 }
 
@@ -72,4 +72,20 @@ func expectLetStatement(t *testing.T, got ast.Statement, name string) {
 		t.Fatalf("value mismatch: expected %q, got %q", name, stmt.Lhs.Value)
 	}
 	// we won't check the rhs for now
+}
+
+// Takes in a program with a single statement. We cast it to the desired type, or fail if it's not possible
+func expectAstNode[T any](t *testing.T, prog *ast.Program) T {
+	if n := len(prog.Statements); n != 1 {
+		t.Fatalf("expected 1 statement but got %d", n)
+	}
+	stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("expected ExpressionStatement got %T", prog.Statements[0])
+	}
+	expStmt, ok := stmt.Expr.(T)
+	if !ok {
+		t.Fatalf("can't cast to desired type, it is %T", stmt)
+	}
+	return expStmt
 }

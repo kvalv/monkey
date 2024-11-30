@@ -155,6 +155,22 @@ func TestFunctionLiteral(t *testing.T) {
 	}
 }
 
+func TestCallExpression(t *testing.T) {
+	input := "concat(1, 2, a + b)"
+	prog, err := parser.New(input).Parse()
+	if err != nil {
+		t.Fatalf("got error %v", err)
+	}
+	callExp := expectAstNode[*ast.CallExpression](t, prog)
+	expectLiteral(t, callExp.Name, "concat")
+	if n := len(callExp.Params); n != 3 {
+		t.Fatalf("expected 3 params, got %d", n)
+	}
+	expectLiteral(t, callExp.Params[0], 1)
+	expectLiteral(t, callExp.Params[1], 2)
+	expectInfixExpression(t, callExp.Params[2], "a", "+", "b")
+}
+
 func TestOperatorPrecedenceParsing(t *testing.T) {
 	tests := []struct {
 		input, expected string

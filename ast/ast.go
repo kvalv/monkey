@@ -63,7 +63,12 @@ type Identifier struct {
 
 func (n *Identifier) TokenLiteral() string { return n.Token.Literal }
 func (n *Identifier) expr()                {}
-func (n *Identifier) String() string       { return n.Value }
+func (n *Identifier) String() string {
+	if n == nil {
+		return "<Identifier:nil>"
+	}
+	return n.Value
+}
 
 type Number struct {
 	token.Token
@@ -157,4 +162,23 @@ func (n *FunctionLiteral) String() string {
 		params = append(params, p.String())
 	}
 	return fmt.Sprintf("fn(%s) %s", strings.Join(params, ", "), n.Body.String())
+}
+
+type CallExpression struct {
+	token.Token
+	Name   Expression
+	Params []Expression
+}
+
+func (n *CallExpression) TokenLiteral() string { return n.Token.Literal }
+func (n *CallExpression) expr()                {}
+func (n *CallExpression) String() string {
+	if n == nil {
+		return "<CallExpression:nil>"
+	}
+	var params []string
+	for _, p := range n.Params {
+		params = append(params, p.String())
+	}
+	return fmt.Sprintf("%s(%s)", n.Name, params)
 }
