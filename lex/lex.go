@@ -118,6 +118,8 @@ var builtins map[string]token.Type = map[string]token.Type{
 	"let":    token.LET,
 	"fn":     token.FUNC,
 	"return": token.RETURN,
+	"true":   token.TRUE,
+	"false":  token.FALSE,
 }
 
 func lookupIdentifier(ident string) token.Type {

@@ -30,6 +30,33 @@ func TestParsePrefix(t *testing.T) {
 	}
 }
 
+func TestParseInfixExpression(t *testing.T) {
+	cases := []struct {
+		input string
+		lhs   any
+		op    string
+		rhs   any
+	}{
+		{"true == false", true, "==", false},
+		{"false > true", false, ">", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			p := parser.New(tc.input)
+			prog, errs := p.Parse()
+			if len(errs) > 0 {
+				t.Fatalf("got %d errors: %+v", len(errs), errs)
+			}
+			got := prog.Statements[0]
+			exprStmt, ok := got.(*ast.ExpressionStatement)
+			if !ok {
+				t.Fatalf("expected expression statement, got %T", exprStmt)
+			}
+			expectInfixExpression(t, exprStmt.Expr, tc.lhs, tc.op, tc.rhs)
+		})
+	}
+}
+
 func TestParseExpression(t *testing.T) {
 	cases := []struct {
 		input string
@@ -54,7 +81,30 @@ func TestParseExpression(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestBooleanExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{{"true", true}, {"false", false}}
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			p := parser.New(tc.input)
+			prog, err := p.Parse()
+			if err != nil {
+				t.Fatalf("got error %v", err)
+			}
+			if n := len(prog.Statements); n != 1 {
+				t.Fatalf("expected 1 statement but got %d", n)
+			}
+			stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
+			if !ok {
+				t.Fatalf("expected ExpressionStatement got %T", stmt)
+			}
+			expectLiteral(t, stmt.Expr, tc.expected)
+		})
+	}
 }
 
 func TestPrefixParse(t *testing.T) {
@@ -86,6 +136,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{"3 + 4; -5 * 5", "(3 + 4)((-5) * 5)"},
 		{"5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"},
 		{" 3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
+		{"3 > 5 == false", "((3 > 5) == false)"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {

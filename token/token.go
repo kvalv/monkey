@@ -28,6 +28,8 @@ const (
 	BANG      Type = "!"
 	NEQ       Type = "!="
 	SEMICOLON Type = "SEMICOLON"
+	TRUE      Type = "true"
+	FALSE     Type = "false"
 
 	EOF Type = "EOF"
 )

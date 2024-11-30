@@ -12,8 +12,19 @@ func expectLiteral(t *testing.T, got ast.Expression, value any) {
 		expectNumberLiteral(t, got, v)
 	case string:
 		expectIdentifierLiteral(t, got, v)
+	case bool:
+		expectBooleanLiteral(t, got, v)
 	default:
 		t.Fatalf("unknown type %T", v)
+	}
+}
+func expectBooleanLiteral(t *testing.T, got ast.Expression, value bool) {
+	e, ok := got.(*ast.Boolean)
+	if !ok {
+		t.Fatalf("expected boolean - got %T", got)
+	}
+	if e.Value != value {
+		t.Fatalf("value mismatch: expected %t but got %t", value, e.Value)
 	}
 }
 

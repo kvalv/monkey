@@ -73,6 +73,15 @@ func (n *Number) TokenLiteral() string { return n.Token.Literal }
 func (n *Number) expr()                {}
 func (n *Number) String() string       { return fmt.Sprintf("%d", n.Value) }
 
+type Boolean struct {
+	token.Token
+	Value bool
+}
+
+func (n *Boolean) TokenLiteral() string { return n.Token.Literal }
+func (n *Boolean) expr()                {}
+func (n *Boolean) String() string       { return fmt.Sprintf("%t", n.Value) }
+
 type PrefixExpression struct {
 	token.Token
 	Op  string

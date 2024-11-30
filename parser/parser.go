@@ -33,6 +33,8 @@ func New(input string) *Parser {
 	p.prefixFns[token.MINUS] = p.parsePrefixExpression
 	p.prefixFns[token.INT] = p.parseNumber
 	p.prefixFns[token.IDENT] = p.parseIdentifier
+	p.prefixFns[token.TRUE] = p.parseBoolean
+	p.prefixFns[token.FALSE] = p.parseBoolean
 
 	p.infixFns[token.EQ] = p.parseInfixExpression
 	p.infixFns[token.PLUS] = p.parseInfixExpression
@@ -217,6 +219,18 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	}
 
 	return expr
+}
+
+func (p *Parser) parseBoolean() ast.Expression {
+	var out ast.Boolean
+	defer trace("parseBoolean", p.curr)(&out)
+	if !(p.curr.Type == token.FALSE || p.curr.Type == token.TRUE) {
+		p.errExpected(token.FALSE, token.TRUE)
+		return nil
+	}
+	out.Type = p.curr.Type
+	out.Value = p.curr.Literal == "true"
+	return &out
 }
 
 func (p *Parser) parseNumber() ast.Expression {
