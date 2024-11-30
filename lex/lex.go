@@ -115,6 +115,8 @@ var builtins map[string]token.Type = map[string]token.Type{
 	">": token.GT,
 	"<": token.Lt,
 
+	"if":     token.IF,
+	"else":   token.ELSE,
 	"let":    token.LET,
 	"fn":     token.FUNC,
 	"return": token.RETURN,

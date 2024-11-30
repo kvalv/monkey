@@ -9,7 +9,7 @@ import (
 )
 
 func TestNextToken(t *testing.T) {
-	input := `=+-,!*; != == foo fn return {} () 1 11 > < true false`
+	input := `=+-,!*; != == foo fn return {} () 1 11 > < true false if else `
 	l := lex.New(input)
 	expected := []token.Token{
 		{Type: token.ASSIGN, Literal: "="},
@@ -34,6 +34,8 @@ func TestNextToken(t *testing.T) {
 		{Type: token.Lt, Literal: "<"},
 		{Type: token.TRUE, Literal: "true"},
 		{Type: token.FALSE, Literal: "false"},
+		{Type: token.IF, Literal: "if"},
+		{Type: token.ELSE, Literal: "else"},
 		{Type: token.EOF, Literal: ""},
 	}
 	for i, exp := range expected {

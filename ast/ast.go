@@ -101,3 +101,38 @@ type InfixExpression struct {
 func (n *InfixExpression) TokenLiteral() string { return n.Token.Literal }
 func (n *InfixExpression) expr()                {}
 func (n *InfixExpression) String() string       { return fmt.Sprintf("(%s %s %s)", n.Lhs, n.Op, n.Rhs) }
+
+type BlockStatement struct {
+	token.Token
+	Statements []Statement
+}
+
+func (n *BlockStatement) TokenLiteral() string { return n.Token.Literal }
+func (n *BlockStatement) stmt()                {}
+func (n *BlockStatement) String() string {
+	buf := bytes.Buffer{}
+	for _, stmt := range n.Statements {
+		fmt.Fprintf(&buf, "%s", stmt)
+	}
+	return buf.String()
+}
+
+type IfExpression struct {
+	token.Token
+	Cond       Expression
+	Then, Else *BlockStatement
+}
+
+func (n *IfExpression) TokenLiteral() string { return n.Token.Literal }
+func (n *IfExpression) expr()                {}
+func (n *IfExpression) String() string {
+	w := &bytes.Buffer{}
+	if n.Then == nil {
+		panic("IfExpression: Then is nil")
+	}
+	fmt.Fprintf(w, "if %s %s", n.Cond.String(), n.Then.String())
+	if n.Else != nil {
+		fmt.Fprintf(w, " else %s", n.Else.String())
+	}
+	return w.String()
+}

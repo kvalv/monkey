@@ -36,6 +36,7 @@ func New(input string) *Parser {
 	p.prefixFns[token.TRUE] = p.parseBoolean
 	p.prefixFns[token.FALSE] = p.parseBoolean
 	p.prefixFns[token.POPEN] = p.parseGroupExpression
+	p.prefixFns[token.IF] = p.parseIfExpression
 
 	p.infixFns[token.EQ] = p.parseInfixExpression
 	p.infixFns[token.PLUS] = p.parseInfixExpression
@@ -232,6 +233,51 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	}
 
 	return expr
+}
+
+func (p *Parser) parseIfExpression() ast.Expression {
+	var out ast.IfExpression
+	defer trace("parseIfExpression", p.curr)(&out)
+	out.Token = p.curr
+	p.advance()
+	if out.Cond = p.parseExpression(LOWEST); out.Cond == nil {
+		return nil
+	}
+	p.advance()
+	if out.Then = p.parseBlockStatement(); out.Then == nil {
+		return nil
+	}
+	if p.next.Type == token.ELSE {
+		p.advance()
+		p.advance()
+		if out.Else = p.parseBlockStatement(); out.Else == nil {
+			return nil
+		}
+	}
+	return &out
+}
+
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	out := ast.BlockStatement{Statements: []ast.Statement{}}
+	defer trace("parseBlockStatement", p.curr)(&out)
+	out.Token = p.curr
+	if p.curr.Type != token.LBRACK {
+		p.errExpected(token.LBRACK)
+		return nil
+	}
+	p.advance()
+	for !(p.currIsType(token.EOF) || p.currIsType(token.RBRACK)) {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			out.Statements = append(out.Statements, stmt)
+		} else {
+			return nil
+		}
+	}
+	if p.curr.Type != token.RBRACK {
+		p.errExpected(token.RBRACK)
+	}
+	return &out
 }
 
 func (p *Parser) parseBoolean() ast.Expression {

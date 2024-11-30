@@ -154,3 +154,46 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		})
 	}
 }
+
+func TestIfExpression(t *testing.T) {
+	p := parser.New("if true { 2 } else { 3 }")
+	prog, err := p.Parse()
+	if err != nil {
+		t.Fatalf("got error %v", err)
+	}
+	if n := len(prog.Statements); n != 1 {
+		t.Fatalf("expected 1 statement but got %d", n)
+	}
+
+	stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("expected ExpressionStatement got %T", prog.Statements[0])
+	}
+	expStmt, ok := stmt.Expr.(*ast.IfExpression)
+	if !ok {
+		t.Fatalf("expected *ast.IfExpression got %T", stmt)
+	}
+	expectLiteral(t, expStmt.Cond, true)
+
+	{ // lhs
+		if n := len(expStmt.Then.Statements); n != 1 {
+			t.Fatalf("expected 1 statement, got %d", n)
+		}
+		lhs, ok := expStmt.Then.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("expected expression statement got %T", expStmt.Then.Statements[0])
+		}
+		expectLiteral(t, lhs.Expr, 2)
+	}
+
+	{ // rhs
+		if n := len(expStmt.Else.Statements); n != 1 {
+			t.Fatalf("expected 1 statement, got %d", n)
+		}
+		rhs, ok := expStmt.Else.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("expected expression statement got %T", expStmt.Else.Statements[0])
+		}
+		expectLiteral(t, rhs.Expr, 3)
+	}
+}

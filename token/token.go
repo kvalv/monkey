@@ -16,6 +16,8 @@ const (
 	FUNC   Type = "fn"
 	RETURN Type = "return"
 	LET    Type = "let"
+	IF     Type = "if"
+	ELSE   Type = "else"
 
 	EQ        Type = "=="
 	ASSIGN    Type = "="
