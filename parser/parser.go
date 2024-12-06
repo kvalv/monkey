@@ -2,11 +2,13 @@ package parser
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 
 	"github.com/kvalv/monkey/ast"
 	"github.com/kvalv/monkey/lex"
 	"github.com/kvalv/monkey/token"
+	"github.com/kvalv/monkey/tracer"
 )
 
 type PrefixFn func() ast.Expression
@@ -20,6 +22,8 @@ type Parser struct {
 	prefixFns map[token.Type]PrefixFn
 	infixFns  map[token.Type]InfixFn
 }
+
+var trace = (&tracer.Tracer{Output: io.Discard}).Trace
 
 func New(input string) *Parser {
 	p := &Parser{
