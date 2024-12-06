@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/kvalv/monkey/eval"
 	"github.com/kvalv/monkey/parser"
 )
 
@@ -21,7 +22,8 @@ func Start(w io.Writer, r io.Reader) {
 			}
 			continue
 		}
-		fmt.Fprintf(w, "\n%s", prog)
+		res := eval.Eval(prog)
+		fmt.Fprintf(w, "\n%s", res)
 		fmt.Fprintf(w, "\n> ")
 	}
 }
