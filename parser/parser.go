@@ -38,6 +38,7 @@ func New(input string) *Parser {
 	p.prefixFns[token.POPEN] = p.parseGroupExpression
 	p.prefixFns[token.IF] = p.parseIfExpression
 	p.prefixFns[token.FUNC] = p.parseFunctionLiteral
+	p.prefixFns[token.RETURN] = p.parseReturnExpression
 
 	p.infixFns[token.EQ] = p.parseInfixExpression
 	p.infixFns[token.PLUS] = p.parseInfixExpression
@@ -352,6 +353,16 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 	}
 	return &out
 }
+func (p *Parser) parseReturnExpression() ast.Expression {
+	out := &ast.ReturnExpression{Token: p.curr}
+	defer trace("parseReturnExpression")(out)
+	p.advance()
+	if out.Value = p.parseExpression(LOWEST); out.Value == nil {
+		return nil
+	}
+	return out
+}
+
 func (p *Parser) parseCallArguments() []ast.Expression {
 	args := []ast.Expression{}
 	if p.next.Type == token.PCLOSE {

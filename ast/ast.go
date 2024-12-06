@@ -182,3 +182,12 @@ func (n *CallExpression) String() string {
 	}
 	return fmt.Sprintf("%s(%s)", n.Name, params)
 }
+
+type ReturnExpression struct {
+	token.Token
+	Value Expression
+}
+
+func (n *ReturnExpression) TokenLiteral() string { return n.Token.Literal }
+func (n *ReturnExpression) expr()                {}
+func (n *ReturnExpression) String() string       { return n.Value.String() }

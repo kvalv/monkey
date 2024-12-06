@@ -123,6 +123,37 @@ func TestPrefixParse(t *testing.T) {
 	expectLiteral(t, stmt.Expr, 3)
 }
 
+func TestReturnExpression(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{"return 4", 4},
+		{"return true", true},
+		{"return 12", 12},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			prog, err := parser.New(tc.input).Parse()
+			if err != nil {
+				t.Fatalf("got error %v", err)
+			}
+			if n := len(prog.Statements); n != 1 {
+				t.Fatalf("expected 1 statement but got %d", n)
+			}
+			stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
+			if !ok {
+				t.Fatalf("expected ExpressionStatement got %T", prog.Statements[0])
+			}
+			rexpr, ok := stmt.Expr.(*ast.ReturnExpression)
+			if !ok {
+				t.Fatalf("expected ast.ReturnExpression got %T", rexpr)
+			}
+			expectLiteral(t, rexpr.Value, tc.expected)
+		})
+	}
+}
+
 func TestFunctionLiteral(t *testing.T) {
 	tests := []struct{ input, expected string }{
 		{"fn () { 2 }", "fn() {2}"},
