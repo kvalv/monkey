@@ -15,6 +15,7 @@ const (
 
 var lookup map[token.Type]int = map[token.Type]int{
 	token.EQ:    EQ,
+	token.NEQ:   EQ,
 	token.BANG:  PREFIX,
 	token.DIV:   PRODUCT,
 	token.MINUS: SUM,

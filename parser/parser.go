@@ -40,6 +40,7 @@ func New(input string) *Parser {
 	p.prefixFns[token.FUNC] = p.parseFunctionLiteral
 	p.prefixFns[token.RETURN] = p.parseReturnExpression
 
+	p.infixFns[token.NEQ] = p.parseInfixExpression
 	p.infixFns[token.EQ] = p.parseInfixExpression
 	p.infixFns[token.PLUS] = p.parseInfixExpression
 	p.infixFns[token.MINUS] = p.parseInfixExpression

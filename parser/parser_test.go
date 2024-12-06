@@ -39,6 +39,7 @@ func TestParseInfixExpression(t *testing.T) {
 	}{
 		{"true == false", true, "==", false},
 		{"false > true", false, ">", true},
+		{"true != false", true, "!=", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
