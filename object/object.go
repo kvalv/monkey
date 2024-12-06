@@ -7,10 +7,11 @@ import (
 type Type string
 
 const (
-	INTEGER_OBJ = "integer"
-	BOOLEAN_OBJ = "boolean"
-	NULL_OBJ    = "null"
-	RETURN_OBJ  = "return"
+	INTEGER_OBJ = "INTEGER"
+	BOOLEAN_OBJ = "BOOLEAN"
+	NULL_OBJ    = "NULL"
+	RETURN_OBJ  = "RETURN"
+	ERROR_OBJ   = "ERROR"
 )
 
 var (
@@ -29,6 +30,7 @@ type (
 	Boolean struct{ Value bool }
 	Null    struct{}
 	Return  struct{ Object }
+	Error   struct{ Message string }
 )
 
 func (i *Integer) Type() Type     { return INTEGER_OBJ }
@@ -42,3 +44,7 @@ func (b *Null) String() string { return NULL_OBJ }
 
 func (r *Return) Type() Type     { return RETURN_OBJ }
 func (r *Return) String() string { return r.Object.String() }
+
+func (e *Error) Type() Type                 { return ERROR_OBJ }
+func (e *Error) String() string             { return fmt.Sprintf("error: %s", e.Message) }
+func Errorf(format string, a ...any) *Error { return &Error{Message: fmt.Sprintf(format, a...)} }

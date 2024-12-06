@@ -5,33 +5,44 @@ import (
 	"github.com/kvalv/monkey/object"
 )
 
-func parseInfixExpression(node *ast.InfixExpression) object.Object {
+func evalIntegerInfixExpression(op string, left, right object.Object) object.Object {
+	a := left.(*object.Integer).Value
+	b := right.(*object.Integer).Value
+	switch op {
+	case "+":
+		return &object.Integer{Value: a + b}
+	case "-":
+		return &object.Integer{Value: a - b}
+	case "*":
+		return &object.Integer{Value: a * b}
+	case "/":
+		return &object.Integer{Value: a / b}
+	case ">":
+		return &object.Boolean{Value: a > b}
+	case "<":
+		return &object.Boolean{Value: a < b}
+	default:
+		return object.Errorf("unknown operator: %s", op)
+	}
+}
+
+func evalInfixExpression(node *ast.InfixExpression) object.Object {
 	lhs := Eval(node.Lhs)
 	rhs := Eval(node.Rhs)
 
-	a, _ := lhs.(*object.Integer)
-	b, _ := rhs.(*object.Integer)
-	switch node.Op {
-	case "<":
-		return nativeBoolToBoolean(a.Value < b.Value)
-	case ">":
-		return nativeBoolToBoolean(a.Value > b.Value)
-	case "+":
-		return &object.Integer{Value: a.Value + b.Value}
-	case "-":
-		return &object.Integer{Value: a.Value - b.Value}
-	case "*":
-		return &object.Integer{Value: a.Value * b.Value}
-	case "/":
-		return &object.Integer{Value: a.Value / b.Value}
-	case "==":
-		// object.TRUE and object.FALSE are singletons so we check that they point
-		// to the same object
+	if lhs.Type() != rhs.Type() {
+		return object.Errorf("type mismatch: %s %s %s", lhs.Type(), node.Op, rhs.Type())
+	}
+
+	switch {
+	case lhs.Type() == object.INTEGER_OBJ && rhs.Type() == object.INTEGER_OBJ:
+		return evalIntegerInfixExpression(node.Op, lhs, rhs)
+	case node.Op == "==":
 		return nativeBoolToBoolean(lhs == rhs)
-	case "!=":
+	case node.Op == "!=":
 		return nativeBoolToBoolean(lhs != rhs)
 	default:
-		return object.NULL
+		return object.Errorf("unknown operator: %s %s %s", lhs.Type(), node.Op, rhs.Type())
 	}
 }
 func nativeBoolToBoolean(b bool) object.Object {

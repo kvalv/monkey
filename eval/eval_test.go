@@ -99,6 +99,24 @@ func TestReturnStatement(t *testing.T) {
 	}
 }
 
+func TestErrorHandling(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{"5 + true", "type mismatch: INTEGER + BOOLEAN"},
+		{"true > false", "unknown operator: BOOLEAN > BOOLEAN"},
+		{"if true { if true { return 2 + false } }", "type mismatch: INTEGER + BOOLEAN"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			prog := expectParse(t, tc.input)
+			got := eval.Eval(prog)
+			expectErrorMessage(t, got, tc.expected)
+		})
+	}
+}
+
 func expectParse(t *testing.T, input string) *ast.Program {
 	t.Helper()
 	prog, errs := parser.New(input).Parse()
@@ -150,5 +168,16 @@ func expectBooleanLiteral(t *testing.T, got object.Object, expected bool) {
 	}
 	if v.Value != expected {
 		t.Fatalf("value mismatch: expected %t got %t", expected, v.Value)
+	}
+}
+
+func expectErrorMessage(t *testing.T, got object.Object, expected string) {
+	t.Helper()
+	v, ok := got.(*object.Error)
+	if !ok {
+		t.Fatalf("expected *object.Error, got %T", got)
+	}
+	if v.Message != expected {
+		t.Fatalf("value mismatch: expected %s got %s", expected, v.Message)
 	}
 }

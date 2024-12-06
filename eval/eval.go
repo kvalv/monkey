@@ -33,7 +33,7 @@ func Eval(node ast.Node) object.Object {
 		return parsePrefixExpression(n)
 	case *ast.InfixExpression:
 		defer trace("evalInfixExpression")(nil)
-		return parseInfixExpression(n)
+		return evalInfixExpression(n)
 	case *ast.Boolean:
 		defer trace("evalBoolean")(nil)
 		if n.Value {
