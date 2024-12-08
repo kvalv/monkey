@@ -24,13 +24,13 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return Eval(n.Expr, env)
 	case *ast.IfExpression:
 		defer trace("evalIfExpression")(nil)
-		return parseIfExpression(n, env)
+		return evalIfExpression(n, env)
 	case *ast.ReturnExpression:
 		defer trace("evalReturnExpression")(nil)
 		return &object.Return{Object: Eval(n.Value, env)}
 	case *ast.PrefixExpression:
 		defer trace("evalPrefixExpression")(nil)
-		return parsePrefixExpression(n, env)
+		return evalPrefixExpression(n, env)
 	case *ast.InfixExpression:
 		defer trace("evalInfixExpression")(nil)
 		return evalInfixExpression(n, env)

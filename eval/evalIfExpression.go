@@ -5,7 +5,7 @@ import (
 	"github.com/kvalv/monkey/object"
 )
 
-func parseIfExpression(node *ast.IfExpression, env *object.Environment) object.Object {
+func evalIfExpression(node *ast.IfExpression, env *object.Environment) object.Object {
 	res := Eval(node.Cond, env)
 
 	if isTruthy(res) {

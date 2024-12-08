@@ -5,19 +5,19 @@ import (
 	"github.com/kvalv/monkey/object"
 )
 
-func parsePrefixExpression(node *ast.PrefixExpression, env *object.Environment) object.Object {
+func evalPrefixExpression(node *ast.PrefixExpression, env *object.Environment) object.Object {
 	rhs := Eval(node.Rhs, env)
 	switch node.Op {
 	case "-":
-		return parseMinusPrefixOperator(rhs)
+		return evalMinusPrefixOperator(rhs)
 	case "!":
-		return parseBangPrefixOperator(rhs)
+		return evalBangPrefixOperator(rhs)
 	default:
 		return object.NULL
 	}
 }
 
-func parseBangPrefixOperator(obj object.Object) object.Object {
+func evalBangPrefixOperator(obj object.Object) object.Object {
 	switch v := obj.(type) {
 	case *object.Boolean:
 		if v.Value == true {
@@ -33,7 +33,7 @@ func parseBangPrefixOperator(obj object.Object) object.Object {
 		return object.NULL
 	}
 }
-func parseMinusPrefixOperator(obj object.Object) object.Object {
+func evalMinusPrefixOperator(obj object.Object) object.Object {
 	switch v := obj.(type) {
 	case *object.Integer:
 		return &object.Integer{Value: -v.Value}
