@@ -6,12 +6,14 @@ import (
 	"io"
 
 	"github.com/kvalv/monkey/eval"
+	"github.com/kvalv/monkey/object"
 	"github.com/kvalv/monkey/parser"
 )
 
 func Start(w io.Writer, r io.Reader) {
 	sc := bufio.NewScanner(r)
 	fmt.Fprintf(w, "> ")
+	env := object.New()
 	for sc.Scan() {
 		line := sc.Text()
 		p := parser.New(line)
@@ -22,7 +24,7 @@ func Start(w io.Writer, r io.Reader) {
 			}
 			continue
 		}
-		res := eval.Eval(prog)
+		res := eval.Eval(prog, env)
 		fmt.Fprintf(w, "\n%s", res)
 		fmt.Fprintf(w, "\n> ")
 	}

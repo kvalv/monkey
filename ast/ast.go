@@ -43,7 +43,12 @@ type LetStatement struct {
 	Rhs Expression
 }
 
-func (n *LetStatement) String() string       { return fmt.Sprintf("let %s = %s", n.Lhs, n.Rhs) }
+func (n *LetStatement) String() string {
+	if n == nil {
+		return "<LetStatement:nil>"
+	}
+	return fmt.Sprintf("let %s = %s", n.Lhs, n.Rhs)
+}
 func (n *LetStatement) TokenLiteral() string { return n.Token.Literal }
 func (n *LetStatement) stmt()                {}
 

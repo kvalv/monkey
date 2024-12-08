@@ -204,7 +204,7 @@ func TestCallExpression(t *testing.T) {
 }
 
 func TestOperatorPrecedenceParsing(t *testing.T) {
-	tests := []struct {
+	cases := []struct {
 		input, expected string
 	}{
 		{"-a + b", "((-a) + b)"},
@@ -220,7 +220,29 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{"(3 + 4) * 5", "((3 + 4) * 5)"},
 		{"3 + (4 + 5)", "(3 + (4 + 5))"},
 	}
-	for _, tc := range tests {
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			p := parser.New(tc.input)
+			prog, err := p.Parse()
+			if err != nil {
+				t.Fatalf("got error %v", err)
+			}
+			got := prog.String()
+			if got != tc.expected {
+				t.Fatalf("expected %q got %q", tc.expected, got)
+			}
+		})
+	}
+}
+
+func TestLetStatement(t *testing.T) {
+	cases := []struct {
+		input, expected string
+	}{
+		{"let x = 5", "let x = 5"},
+		{"let y = true", "let y = true"},
+	}
+	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
 			p := parser.New(tc.input)
 			prog, err := p.Parse()

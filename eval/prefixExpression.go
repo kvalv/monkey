@@ -5,8 +5,8 @@ import (
 	"github.com/kvalv/monkey/object"
 )
 
-func parsePrefixExpression(node *ast.PrefixExpression) object.Object {
-	rhs := Eval(node.Rhs)
+func parsePrefixExpression(node *ast.PrefixExpression, env *object.Environment) object.Object {
+	rhs := Eval(node.Rhs, env)
 	switch node.Op {
 	case "-":
 		return parseMinusPrefixOperator(rhs)

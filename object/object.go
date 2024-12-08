@@ -48,3 +48,4 @@ func (r *Return) String() string { return r.Object.String() }
 func (e *Error) Type() Type                 { return ERROR_OBJ }
 func (e *Error) String() string             { return fmt.Sprintf("error: %s", e.Message) }
 func Errorf(format string, a ...any) *Error { return &Error{Message: fmt.Sprintf(format, a...)} }
+func IsError(o Object) bool                 { return o.Type() == ERROR_OBJ }

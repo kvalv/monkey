@@ -1,6 +1,7 @@
 package eval_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/kvalv/monkey/ast"
@@ -28,7 +29,7 @@ func TestIntegerExpression(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
 			prog := expectParse(t, tc.input)
-			got := eval.Eval(prog)
+			got := expectEval(t, prog)
 			expectIntegerLiteral(t, got, tc.expected)
 		})
 	}
@@ -55,7 +56,7 @@ func TestBooleanExpression(t *testing.T) {
 	}
 	for _, tc := range cases {
 		prog := expectParse(t, tc.input)
-		got := eval.Eval(prog)
+		got := expectEval(t, prog)
 		expectBooleanLiteral(t, got, tc.expected)
 	}
 }
@@ -75,7 +76,7 @@ func TestIfExpression(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
 			prog := expectParse(t, tc.input)
-			got := eval.Eval(prog)
+			got := expectEval(t, prog)
 			expectLiteral(t, got, tc.expected)
 		})
 	}
@@ -93,7 +94,7 @@ func TestReturnStatement(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
 			prog := expectParse(t, tc.input)
-			got := eval.Eval(prog)
+			got := expectEval(t, prog)
 			expectLiteral(t, got, tc.expected)
 		})
 	}
@@ -111,8 +112,26 @@ func TestErrorHandling(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
 			prog := expectParse(t, tc.input)
-			got := eval.Eval(prog)
+			got := expectEval(t, prog)
 			expectErrorMessage(t, got, tc.expected)
+		})
+	}
+}
+
+func TestLetStatement(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{"let x = 5; x", 5},
+		{"let a = 1; a + 1", 2},
+		{"let a = b", fmt.Errorf(`identifier 'b' not defined`)},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			prog := expectParse(t, tc.input)
+			got := expectEval(t, prog)
+			expectLiteral(t, got, tc.expected)
 		})
 	}
 }
@@ -130,11 +149,15 @@ func expectParse(t *testing.T, input string) *ast.Program {
 	return prog
 }
 
+func expectEval(t *testing.T, prog *ast.Program) object.Object {
+	t.Helper()
+	return eval.Eval(prog, object.New())
+}
 func expectLiteral(t *testing.T, got object.Object, expected any) {
 	t.Helper()
 	if expected == nil {
 		if got != object.NULL {
-			t.Fatalf("expected null, got %T %+v", got, got)
+			t.Fatalf("expected null, got %T (%q)", got, got)
 		}
 		return
 	}
@@ -145,8 +168,10 @@ func expectLiteral(t *testing.T, got object.Object, expected any) {
 		expectIntegerLiteral(t, got, (e))
 	case bool:
 		expectBooleanLiteral(t, got, e)
+	case error:
+		expectErrorMessage(t, got, e.Error())
 	default:
-		t.Fatalf("unexpected type: %T", expected)
+		t.Fatalf("unexpected type: %T %q", got, got)
 	}
 }
 
@@ -154,7 +179,7 @@ func expectIntegerLiteral(t *testing.T, got object.Object, expected int64) {
 	t.Helper()
 	v, ok := got.(*object.Integer)
 	if !ok {
-		t.Fatalf("expected *object.Integer, got %T", got)
+		t.Fatalf("expected *object.Integer, got %T (%q)", got, got)
 	}
 	if v.Value != expected {
 		t.Fatalf("value mismatch: expected %d got %d", expected, v.Value)
@@ -164,7 +189,7 @@ func expectBooleanLiteral(t *testing.T, got object.Object, expected bool) {
 	t.Helper()
 	v, ok := got.(*object.Boolean)
 	if !ok {
-		t.Fatalf("expected *object.Boolean, got %T", got)
+		t.Fatalf("expected *object.Boolean, got %T (%q)", got, got)
 	}
 	if v.Value != expected {
 		t.Fatalf("value mismatch: expected %t got %t", expected, v.Value)
@@ -175,7 +200,7 @@ func expectErrorMessage(t *testing.T, got object.Object, expected string) {
 	t.Helper()
 	v, ok := got.(*object.Error)
 	if !ok {
-		t.Fatalf("expected *object.Error, got %T", got)
+		t.Fatalf("expected *object.Error, got %T (%q)", got, got)
 	}
 	if v.Message != expected {
 		t.Fatalf("value mismatch: expected %s got %s", expected, v.Message)

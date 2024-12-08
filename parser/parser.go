@@ -102,6 +102,7 @@ func (p *Parser) Parse() (*ast.Program, []error) {
 		stmt := p.parseStatement()
 		if stmt != nil {
 			prog.Statements = append(prog.Statements, stmt)
+			p.advance()
 		} else {
 			break
 		}
@@ -134,27 +135,25 @@ func (p *Parser) parseIdentifier() ast.Expression {
 }
 
 func (p *Parser) parseLetStatement(precedence int) *ast.LetStatement {
-	var stmt ast.LetStatement
-	defer trace("parseLetStatement")(&stmt)
-	var ok bool
-	if stmt.Token, ok = p.parseToken(token.LET); !ok {
-		return nil
-	}
+	stmt := &ast.LetStatement{Token: p.curr}
+	p.advance()
+	defer trace("parseLetStatement")(stmt)
 	lhs := p.parseIdentifier()
 	if lhs == nil {
 		return nil
 	}
 	stmt.Lhs = lhs.(*ast.Identifier) // also probably not ideal..
-	if _, ok = p.parseToken(token.ASSIGN); !ok {
+	p.advance()
+	if _, ok := p.parseToken(token.ASSIGN); !ok {
 		return nil
 	}
 	if stmt.Rhs = p.parseExpression(LOWEST); stmt.Rhs == nil {
 		return nil
 	}
-	if _, ok = p.parseToken(token.SEMICOLON); !ok {
-		return nil
+	if p.nextIsType(token.SEMICOLON) {
+		p.advance()
 	}
-	return &stmt
+	return stmt
 }
 
 func (p *Parser) parseGroupExpression() ast.Expression {

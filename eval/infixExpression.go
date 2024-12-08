@@ -26,9 +26,9 @@ func evalIntegerInfixExpression(op string, left, right object.Object) object.Obj
 	}
 }
 
-func evalInfixExpression(node *ast.InfixExpression) object.Object {
-	lhs := Eval(node.Lhs)
-	rhs := Eval(node.Rhs)
+func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) object.Object {
+	lhs := Eval(node.Lhs, env)
+	rhs := Eval(node.Rhs, env)
 
 	if lhs.Type() != rhs.Type() {
 		return object.Errorf("type mismatch: %s %s %s", lhs.Type(), node.Op, rhs.Type())
