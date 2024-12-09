@@ -171,8 +171,8 @@ func (n *FunctionLiteral) String() string {
 
 type CallExpression struct {
 	token.Token
-	Name   Expression
-	Params []Expression
+	Function Expression // identifier or FunctionLiteral
+	Params   []Expression
 }
 
 func (n *CallExpression) TokenLiteral() string { return n.Token.Literal }
@@ -185,7 +185,7 @@ func (n *CallExpression) String() string {
 	for _, p := range n.Params {
 		params = append(params, p.String())
 	}
-	return fmt.Sprintf("%s(%s)", n.Name, params)
+	return fmt.Sprintf("%s(%s)", n.Function, params)
 }
 
 type ReturnExpression struct {
@@ -195,4 +195,4 @@ type ReturnExpression struct {
 
 func (n *ReturnExpression) TokenLiteral() string { return n.Token.Literal }
 func (n *ReturnExpression) expr()                {}
-func (n *ReturnExpression) String() string       { return n.Value.String() }
+func (n *ReturnExpression) String() string       { return fmt.Sprintf("return %s", n.Value.String()) }

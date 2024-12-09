@@ -126,6 +126,71 @@ func TestLetStatement(t *testing.T) {
 		{"let x = 5; x", 5},
 		{"let a = 1; a + 1", 2},
 		{"let a = b", fmt.Errorf(`identifier 'b' not defined`)},
+		{"let a = 10; let b = a > 7; let c = if b { 99 } else { 98 }", 99},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			prog := expectParse(t, tc.input)
+			got := expectEval(t, prog)
+			expectLiteral(t, got, tc.expected)
+		})
+	}
+}
+
+func TestFunctionLiteral(t *testing.T) {
+	cases := []struct {
+		input  string
+		pcount int
+		stmts  []string
+	}{
+		{"fn(x) { return 2 }", 1, []string{"return 2"}},
+		{"fn(x, y) { x + y }", 2, []string{"(x + y)"}},
+		{"fn() { true }", 0, []string{"true"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			prog := expectParse(t, tc.input)
+			got := expectEval(t, prog)
+			f, ok := got.(*object.Function)
+			if !ok {
+				t.Fatalf("not a *object.Function - got %T %q", got, got)
+			}
+			if n := len(f.Params); n != tc.pcount {
+				t.Fatalf("expected %d parameter, got %d", tc.pcount, n)
+			}
+			if n := len(f.Body.Statements); n != len(tc.stmts) {
+				t.Fatalf("expected %d statements, got %d", len(tc.stmts), n)
+			}
+			for i, expected := range tc.stmts {
+				got := f.Body.Statements[i].String()
+				if got != expected {
+					t.Fatalf("expected  %q got %q", expected, got)
+				}
+			}
+		})
+	}
+}
+
+func TestFunctionLiteralError(t *testing.T) {
+	t.Run("repeated arguments", func(t *testing.T) {
+		got := expectEval(t, expectParse(t, "fn(x, x) { x + x }"))
+		expectErrorMessage(t, got, `repeated argument "x"`)
+	})
+}
+
+func TestFunctionApplication(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{"let plus = fn(x) { return x + 2 }; plus(2)", 4},
+		{"fn(x) { return x + 2 }(2)", 4},
+		{"fn(x) { x + 2 }(2)", 4},
+		{"let add = fn(x, y) { return x + y }; add(1, 2)", 3},
+		{"fn(x, y) { return x + y }(1, 2)", 3},
+		{"fn(x, y) { x + y }(1, 2)", 3},
+		{"let apply = fn(f, in) { f(in) }; apply(fn(x) { x + 2 }, 2)", 4},
+		{"let a = 1; fn(x) { x + a }(1)", 2},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
@@ -151,7 +216,7 @@ func expectParse(t *testing.T, input string) *ast.Program {
 
 func expectEval(t *testing.T, prog *ast.Program) object.Object {
 	t.Helper()
-	return eval.Eval(prog, object.New())
+	return eval.Eval(prog, object.NewEnvironment())
 }
 func expectLiteral(t *testing.T, got object.Object, expected any) {
 	t.Helper()
@@ -203,6 +268,6 @@ func expectErrorMessage(t *testing.T, got object.Object, expected string) {
 		t.Fatalf("expected *object.Error, got %T (%q)", got, got)
 	}
 	if v.Message != expected {
-		t.Fatalf("value mismatch: expected %s got %s", expected, v.Message)
+		t.Fatalf("value mismatch: expected %q got %q", expected, v.Message)
 	}
 }

@@ -393,7 +393,7 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 func (p *Parser) parseCallExpression(precedence int, left ast.Expression) ast.Expression {
 	out := &ast.CallExpression{}
 	defer trace("parseCallExpression")(out)
-	out.Name = left
+	out.Function = left
 	out.Params = p.parseCallArguments()
 	if out.Params == nil {
 		panic("params nil")

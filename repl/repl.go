@@ -13,7 +13,7 @@ import (
 func Start(w io.Writer, r io.Reader) {
 	sc := bufio.NewScanner(r)
 	fmt.Fprintf(w, "> ")
-	env := object.New()
+	env := object.NewEnvironment()
 	for sc.Scan() {
 		line := sc.Text()
 		p := parser.New(line)

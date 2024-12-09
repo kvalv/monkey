@@ -194,7 +194,7 @@ func TestCallExpression(t *testing.T) {
 		t.Fatalf("got error %v", err)
 	}
 	callExp := expectAstNode[*ast.CallExpression](t, prog)
-	expectLiteral(t, callExp.Name, "concat")
+	expectLiteral(t, callExp.Function, "concat")
 	if n := len(callExp.Params); n != 3 {
 		t.Fatalf("expected 3 params, got %d", n)
 	}
