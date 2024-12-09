@@ -1,12 +1,14 @@
 package eval
 
 import (
+	"io"
+
 	"github.com/kvalv/monkey/ast"
 	"github.com/kvalv/monkey/object"
 	"github.com/kvalv/monkey/tracer"
 )
 
-var trace = (&tracer.Tracer{}).Trace
+var trace = tracer.New(io.Discard).Trace
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch n := node.(type) {
@@ -62,6 +64,9 @@ func evalStatements(stmts []ast.Statement, env *object.Environment) object.Objec
 		res = Eval(s, env)
 		if res == nil {
 			return nil
+		}
+		if object.IsError(res) {
+			return res
 		}
 		if res.Type() == object.RETURN_OBJ {
 			return res.(*object.Return).Object

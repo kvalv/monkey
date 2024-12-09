@@ -12,34 +12,27 @@ import (
 
 type Tracer struct {
 	log.Logger
-	Output      io.Writer
-	level       int
-	initialized bool
+	level int
+}
+
+func New(w io.Writer) *Tracer {
+	return &Tracer{
+		Logger: *log.New(w, "", 0),
+	}
 }
 
 func (t *Tracer) Trace(name string) func(n ast.Node) {
-	if !t.initialized {
-		t.init()
-	}
 	start := time.Now()
 	indent := strings.Repeat(" ", t.level*2)
 	t.level++
-	log.Printf("%sBEGIN %s", indent, name)
+	t.Logger.Printf("%sBEGIN %s", indent, name)
 	return func(n ast.Node) {
 		elapsed := time.Since(start)
 		line := fmt.Sprintf("%sEND %s [%s]", indent, name, elapsed.String())
 		if n != nil {
 			line = fmt.Sprintf("%s -> %s", line, n.String())
 		}
-		log.Printf(line)
+		t.Logger.Printf(line)
 		t.level--
 	}
-}
-
-func (t *Tracer) init() {
-	t.Logger.SetFlags(0) // doesn't really belong here but whatever
-	if t.Output != nil {
-		t.Logger.SetOutput(t.Output)
-	}
-	t.initialized = true
 }

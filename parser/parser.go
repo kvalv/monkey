@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 
 	"github.com/kvalv/monkey/ast"
@@ -18,18 +19,24 @@ type Parser struct {
 	l          *lex.Lex
 	curr, next token.Token
 	errs       []error
+	tracer     *tracer.Tracer
 
 	prefixFns map[token.Type]PrefixFn
 	infixFns  map[token.Type]InfixFn
 }
 
-var trace = (&tracer.Tracer{Output: io.Discard}).Trace
+type parseOpt func(p *Parser)
 
-func New(input string) *Parser {
+func EnableTracing() parseOpt {
+	return func(p *Parser) { p.tracer = tracer.New(os.Stdout) }
+}
+
+func New(input string, opts ...parseOpt) *Parser {
 	p := &Parser{
 		l:         lex.New(input),
 		prefixFns: make(map[token.Type]PrefixFn),
 		infixFns:  make(map[token.Type]InfixFn),
+		tracer:    tracer.New(io.Discard),
 	}
 	p.advance() // populate curr and next
 	p.advance()
@@ -124,7 +131,7 @@ func (p *Parser) parseToken(ttype ...token.Type) (token.Token, bool) {
 
 func (p *Parser) parseIdentifier() ast.Expression {
 	var out ast.Identifier
-	defer trace("parseIdentifier")(&out)
+	defer p.tracer.Trace("parseIdentifier")(&out)
 	if p.curr.Type != token.IDENT {
 		p.errExpected(token.IDENT)
 		return nil
@@ -137,7 +144,7 @@ func (p *Parser) parseIdentifier() ast.Expression {
 func (p *Parser) parseLetStatement(precedence int) *ast.LetStatement {
 	stmt := &ast.LetStatement{Token: p.curr}
 	p.advance()
-	defer trace("parseLetStatement")(stmt)
+	defer p.tracer.Trace("parseLetStatement")(stmt)
 	lhs := p.parseIdentifier()
 	if lhs == nil {
 		return nil
@@ -157,7 +164,7 @@ func (p *Parser) parseLetStatement(precedence int) *ast.LetStatement {
 }
 
 func (p *Parser) parseGroupExpression() ast.Expression {
-	defer trace("parseGroupExpression")(nil)
+	defer p.tracer.Trace("parseGroupExpression")(nil)
 	p.advance()
 	exp := p.parseExpression(LOWEST)
 	if p.next.Type != token.PCLOSE {
@@ -169,7 +176,7 @@ func (p *Parser) parseGroupExpression() ast.Expression {
 }
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	expr := &ast.ExpressionStatement{Token: p.curr}
-	defer trace("parseExpressionStatement")(expr)
+	defer p.tracer.Trace("parseExpressionStatement")(expr)
 	exp := p.parseExpression(LOWEST)
 	if exp == nil {
 		return nil
@@ -186,7 +193,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 
 func (p *Parser) parseStatement() ast.Statement {
 	var out ast.Statement
-	defer trace("parseStatement")(out)
+	defer p.tracer.Trace("parseStatement")(out)
 	switch p.curr.Type {
 	case token.LET:
 		out = p.parseLetStatement(LOWEST)
@@ -198,7 +205,7 @@ func (p *Parser) parseStatement() ast.Statement {
 
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	exp := ast.PrefixExpression{Token: p.curr, Op: p.curr.Literal}
-	defer trace("parsePrefixExpression")(&exp)
+	defer p.tracer.Trace("parsePrefixExpression")(&exp)
 	p.advance()
 	rhs := p.parseExpression(PREFIX)
 	if rhs == nil {
@@ -210,7 +217,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 
 func (p *Parser) parseInfixExpression(precedence int, lhs ast.Expression) ast.Expression {
 	var exp ast.InfixExpression
-	defer trace("parseInfixExpression")(&exp)
+	defer p.tracer.Trace("parseInfixExpression")(&exp)
 	exp = ast.InfixExpression{Token: p.curr, Op: p.curr.Literal, Lhs: lhs}
 	p.advance()
 	if exp.Rhs = p.parseExpression(precedence); exp.Rhs == nil {
@@ -221,7 +228,7 @@ func (p *Parser) parseInfixExpression(precedence int, lhs ast.Expression) ast.Ex
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	var expr ast.Expression
-	defer trace("parseExpression")(expr)
+	defer p.tracer.Trace("parseExpression")(expr)
 	fn, ok := p.prefixFns[p.curr.Type]
 	if !ok {
 		p.errorf("prefixFn not found for type %v", p.curr.Type)
@@ -244,7 +251,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 func (p *Parser) parseIfExpression() ast.Expression {
 	var out ast.IfExpression
-	defer trace("parseIfExpression")(&out)
+	defer p.tracer.Trace("parseIfExpression")(&out)
 	out.Token = p.curr
 	p.advance()
 	if out.Cond = p.parseExpression(LOWEST); out.Cond == nil {
@@ -266,7 +273,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	out := ast.BlockStatement{Statements: []ast.Statement{}}
-	defer trace("parseBlockStatement")(&out)
+	defer p.tracer.Trace("parseBlockStatement")(&out)
 	out.Token = p.curr
 	if p.curr.Type != token.LBRACK {
 		p.errExpected(token.LBRACK)
@@ -289,7 +296,7 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 
 func (p *Parser) parseBoolean() ast.Expression {
 	var out ast.Boolean
-	defer trace("parseBoolean")(&out)
+	defer p.tracer.Trace("parseBoolean")(&out)
 	if !(p.curr.Type == token.FALSE || p.curr.Type == token.TRUE) {
 		p.errExpected(token.FALSE, token.TRUE)
 		return nil
@@ -301,7 +308,7 @@ func (p *Parser) parseBoolean() ast.Expression {
 
 func (p *Parser) parseNumber() ast.Expression {
 	var out ast.Number
-	defer trace("parseNumber")(&out)
+	defer p.tracer.Trace("parseNumber")(&out)
 	if p.curr.Type != token.INT {
 		p.errExpected(token.INT)
 		return nil
@@ -342,7 +349,7 @@ func (p *Parser) parseParamList() []ast.Identifier {
 
 func (p *Parser) parseFunctionLiteral() ast.Expression {
 	out := ast.FunctionLiteral{Token: p.curr}
-	defer trace("parseFunctionLiteral")(&out)
+	defer p.tracer.Trace("parseFunctionLiteral")(&out)
 	if p.curr.Type != token.FUNC {
 		p.errExpected(token.FUNC)
 		return nil
@@ -359,7 +366,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 }
 func (p *Parser) parseReturnExpression() ast.Expression {
 	out := &ast.ReturnExpression{Token: p.curr}
-	defer trace("parseReturnExpression")(out)
+	defer p.tracer.Trace("parseReturnExpression")(out)
 	p.advance()
 	if out.Value = p.parseExpression(LOWEST); out.Value == nil {
 		return nil
@@ -392,7 +399,7 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 
 func (p *Parser) parseCallExpression(precedence int, left ast.Expression) ast.Expression {
 	out := &ast.CallExpression{}
-	defer trace("parseCallExpression")(out)
+	defer p.tracer.Trace("parseCallExpression")(out)
 	out.Function = left
 	out.Params = p.parseCallArguments()
 	if out.Params == nil {
