@@ -6,6 +6,7 @@ const (
 	IDENT   Type = "IDENT"
 	INT     Type = "INT"
 	ILLEGAL Type = "ILLEGAL"
+	STRING  Type = "STRING"
 	COMMA   Type = ","
 
 	POPEN  Type = "("

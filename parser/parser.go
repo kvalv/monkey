@@ -68,7 +68,7 @@ func (p *Parser) advance() {
 		return
 	}
 	p.curr = p.next
-	p.next = p.l.NextToken()
+	p.next = p.l.Next()
 }
 
 // appends an error to the error list

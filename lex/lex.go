@@ -1,114 +1,131 @@
 package lex
 
 import (
+	"fmt"
+
 	"github.com/kvalv/monkey/token"
 )
-
-type Lex struct {
-	input   string
-	ch      byte // current
-	pos     int
-	peekPos int
-	eof     bool
-}
 
 func New(input string) *Lex {
 	return &Lex{input: input}
 }
 
+type Lex struct {
+	input string
+	pos   int
+}
+
 func (l *Lex) create(tp token.Type, lit string) token.Token {
-	end := l.pos
+	if tp == token.EOF {
+		return token.Token{
+			Type: tp, Literal: "", Span: token.Span{
+				Start: len(l.input),
+				End:   len(l.input),
+			},
+		}
+	}
+	end := l.pos + 1
 	start := end - len(lit)
 	return token.Token{Type: tp, Literal: lit, Span: token.Span{Start: start, End: end}}
 }
 
-func (l *Lex) NextToken() token.Token {
+func (l *Lex) curr() byte {
+	if l.pos >= len(l.input) {
+		return 0
+	}
+	return l.input[l.pos]
+}
+func (l *Lex) peek() byte {
+	if l.pos+1 >= len(l.input) {
+		return 0
+	}
+	return l.input[l.pos+1]
+}
+func (l *Lex) advance() {
+	if l.pos+1 > len(l.input) {
+		l.pos = len(l.input)
+	} else {
+		l.pos++
+	}
+}
 
-	l.skipWhitespace()
-
-	c := l.nextChar()
-	switch c {
-	case 0:
+func (l *Lex) Next() (t token.Token) {
+	defer func() {
+	}()
+	if l.curr() == 0 {
 		return l.create(token.EOF, "")
-	case '*', '/', '+', '-', ',', '(', ')', '{', '}', ';', '>', '<':
-		return l.create(builtins[string(c)], string(c))
-	case '=':
+	}
+	defer l.advance() // advance one byte so we're at the start of next token when we're done here
+
+	l.takeWhile(isWhitespace, true) // ... we want to skip whitespace
+
+	c := l.curr()
+	if tp, ok := builtins[string(c)]; ok {
+		// all single tokens should match here; =, +, -, (, ...
+		return l.create(tp, string(c))
+	}
+	if c == '=' {
 		if l.peek() == '=' {
-			l.nextChar()
+			l.advance()
 			return l.create(token.EQ, "==")
 		}
 		return l.create(token.ASSIGN, "=")
-	case '!':
+	}
+	if c == '!' {
 		if l.peek() == '=' {
-			l.nextChar()
+			l.advance()
 			return l.create(token.NEQ, "!=")
 		}
 		return l.create(token.BANG, "!")
-	default:
-		if isLetter(c) {
-			l.goBack()
-			word := l.takeWhile(isLetter)
-			return l.create(lookupIdentifier(word), word)
+	}
+	if c == '"' {
+		l.advance()
+		word := l.takeWhile(func(b byte) bool { return b != '"' }, true)
+		return l.create(token.STRING, fmt.Sprintf(`"%s`, word))
+	}
+	// yeah otherwise we'll check for longer tokens: digits and letters
+	if isLetter(c) {
+		word := l.takeWhile(isLetter, false)
+		if typ, ok := builtins[word]; ok {
+			// it's a special keyword, such as "if" or "return"
+			return l.create(typ, word)
 		}
-		if isDigit(c) {
-			l.goBack()
-			word := l.takeWhile(isDigit)
-			return l.create(token.INT, word)
-		}
-		return l.create(token.ILLEGAL, string(c))
+		return l.create(token.IDENT, word)
 	}
+	if isDigit(c) {
+		// being an identifier is OK too!
+		return l.create(token.INT, l.takeWhile(isDigit, false))
+	}
+
+	return l.create(token.ILLEGAL, string(c))
 }
 
-func (l *Lex) goBack() {
-	if l.pos > 0 {
-		l.pos -= 1
-		l.peekPos -= 1
+// takewhile consumes until the peek token evaluates to false.
+// It also consumes the current token if consume is true
+func (l *Lex) takeWhile(pred func(c byte) bool, consume bool) string {
+	// starts at current, stops at the end
+	if !pred(l.curr()) {
+		return ""
 	}
-}
-func (l *Lex) peek() byte {
-	if l.peekPos >= len(l.input) {
-		return 0
-	}
-	return l.input[l.peekPos]
-}
-
-func (l *Lex) skipWhitespace() {
-	for isWhitespace(l.peek()) {
-		l.nextChar()
-	}
-}
-
-func (l *Lex) takeWhile(pred func(c byte) bool) string {
 	start := l.pos
+	for {
+		c := l.peek()
+		if c == 0 {
+			break
+		}
+		if !pred(c) {
+			if consume {
+				l.advance()
+			}
+			break
+		}
+		l.advance()
+	}
 	end := l.pos
-	for pred(l.ch) {
-		end = l.pos
-		l.nextChar()
-	}
-	if !l.eof {
-		l.goBack()
-	}
-	return l.input[start:end]
-}
-
-func (l *Lex) nextChar() byte {
-	if l.eof {
-		return 0
-	}
-	if l.peekPos >= len(l.input) {
-		l.eof = true
-		l.ch = 0
-		return 0
-	} else {
-		l.ch = l.input[l.pos]
-		l.pos += 1
-		l.peekPos += 1
-	}
-	return l.ch
+	return l.input[start : end+1]
 }
 
 var builtins map[string]token.Type = map[string]token.Type{
-	"=": token.ASSIGN,
 	"+": token.PLUS,
 	"-": token.MINUS,
 	"*": token.MUL,

@@ -1,6 +1,8 @@
 package lex_test
 
 import (
+	"log"
+	"os"
 	"testing"
 
 	"github.com/kvalv/monkey/token"
@@ -9,8 +11,9 @@ import (
 )
 
 func TestNextToken(t *testing.T) {
-	input := `=+-,!*; != == foo fn return {} () 1 11 > < true false if else `
+	input := `=+-,!*; != == foo fn return {} () 1 11 > < true false if else "hello" "hello world"`
 	l := lex.New(input)
+	log.SetOutput(os.Stdout)
 	expected := []token.Token{
 		{Type: token.ASSIGN, Literal: "="},
 		{Type: token.PLUS, Literal: "+"},
@@ -36,10 +39,12 @@ func TestNextToken(t *testing.T) {
 		{Type: token.FALSE, Literal: "false"},
 		{Type: token.IF, Literal: "if"},
 		{Type: token.ELSE, Literal: "else"},
+		{Type: token.STRING, Literal: `"hello"`},
+		{Type: token.STRING, Literal: `"hello world"`},
 		{Type: token.EOF, Literal: ""},
 	}
 	for i, exp := range expected {
-		if got := l.NextToken(); got.Type != exp.Type {
+		if got := l.Next(); got.Type != exp.Type {
 			t.Fatalf("%d: unexpected TokenType: expected %+v, got %+v", i, exp, got)
 		} else if got.Literal != exp.Literal {
 			t.Fatalf("%d: unexpected Literal: expected %+v, got %+v", i, exp, got)
@@ -58,7 +63,7 @@ func TestSpan(t *testing.T) {
 		{Type: token.EOF, Literal: "", Span: token.Span{Start: 17, End: 17}},
 	}
 	for _, exp := range expected {
-		got := l.NextToken()
+		got := l.Next()
 		if got.Span.Start != exp.Span.Start {
 			t.Fatalf("span start mismatch: expected %d got %d - token = %+v", exp.Span.Start, got.Span.Start, got)
 		}
@@ -77,7 +82,7 @@ func TestPrefix(t *testing.T) {
 		{Type: token.EOF, Literal: ""},
 	}
 	for i, exp := range expected {
-		if got := l.NextToken(); got.Type != exp.Type {
+		if got := l.Next(); got.Type != exp.Type {
 			t.Fatalf("%d: unexpected TokenType: expected %+v, got %+v", i, exp, got)
 		} else if got.Literal != exp.Literal {
 			t.Fatalf("%d: unexpected Literal: expected %+v, got %+v", i, exp, got)
@@ -92,7 +97,7 @@ func TestJustAIdentAndSemicolon(t *testing.T) {
 		{Type: token.SEMICOLON, Literal: ";"},
 	}
 	for i, exp := range expected {
-		if got := l.NextToken(); got.Type != exp.Type {
+		if got := l.Next(); got.Type != exp.Type {
 			t.Fatalf("%d: unexpected TokenType: expected %+v, got %+v", i, exp, got)
 		} else if got.Literal != exp.Literal {
 			t.Fatalf("%d: unexpected Literal: expected %+v, got %+v", i, exp, got)
@@ -112,7 +117,7 @@ func TestMore(t *testing.T) {
 		{Type: token.EOF, Literal: ""},
 	}
 	for i, exp := range expected {
-		if got := l.NextToken(); got.Type != exp.Type {
+		if got := l.Next(); got.Type != exp.Type {
 			t.Fatalf("%d: unexpected TokenType: expected %+v, got %+v", i, exp, got)
 		} else if got.Literal != exp.Literal {
 			t.Fatalf("%d: unexpected Literal: expected %+v, got %+v", i, exp, got)
