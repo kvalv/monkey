@@ -64,14 +64,19 @@ func TestBooleanExpression(t *testing.T) {
 func TestStringExpression(t *testing.T) {
 	cases := []struct {
 		input    string
-		expected string
+		expected any
 	}{
 		{`"hello"`, "hello"},
+		{`"he" + "llo"`, "hello"},
+		{`"he" + ""`, "he"},
+		{`"" + ""`, ""},
+		{`"x" == "x"`, true},
+		{`"x" == "y"`, false},
 	}
 	for _, tc := range cases {
 		prog := expectParse(t, tc.input)
 		got := expectEval(t, prog)
-		expectStringLiteral(t, got, tc.expected)
+		expectLiteral(t, got, tc.expected)
 	}
 }
 
@@ -247,6 +252,8 @@ func expectLiteral(t *testing.T, got object.Object, expected any) {
 		expectIntegerLiteral(t, got, (e))
 	case bool:
 		expectBooleanLiteral(t, got, e)
+	case string:
+		expectStringLiteral(t, got, e)
 	case error:
 		expectErrorMessage(t, got, e.Error())
 	default:

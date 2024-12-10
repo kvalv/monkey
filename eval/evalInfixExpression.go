@@ -1,9 +1,24 @@
 package eval
 
 import (
+	"fmt"
+
 	"github.com/kvalv/monkey/ast"
 	"github.com/kvalv/monkey/object"
 )
+
+func evalStringInfixExpression(op string, left, right object.Object) object.Object {
+	a := left.(*object.String).Value
+	b := right.(*object.String).Value
+	switch op {
+	case "+":
+		return &object.String{Value: fmt.Sprintf("%s%s", a, b)}
+	case "==":
+		return nativeBoolToBoolean(a == b)
+	default:
+		return object.Errorf("unknown operator: STRING %s STRING", op)
+	}
+}
 
 func evalIntegerInfixExpression(op string, left, right object.Object) object.Object {
 	a := left.(*object.Integer).Value
@@ -37,6 +52,8 @@ func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) obj
 	switch {
 	case lhs.Type() == object.INTEGER_OBJ && rhs.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(node.Op, lhs, rhs)
+	case lhs.Type() == object.STRING_OBJ && rhs.Type() == object.STRING_OBJ:
+		return evalStringInfixExpression(node.Op, lhs, rhs)
 	case node.Op == "==":
 		return nativeBoolToBoolean(lhs == rhs)
 	case node.Op == "!=":
