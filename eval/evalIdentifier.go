@@ -6,9 +6,12 @@ import (
 )
 
 func evalIdentifier(id *ast.Identifier, env *object.Environment) object.Object {
-	value, ok := env.Get(id.Literal)
-	if !ok {
-		return object.Errorf("identifier '%s' not defined", id.Literal)
+	if value, ok := env.Get(id.Literal); ok {
+		return value
 	}
-	return value
+	if value, ok := builtin[id.Literal]; ok {
+		return value
+	}
+	return object.Errorf("identifier '%s' not defined", id.Literal)
+
 }

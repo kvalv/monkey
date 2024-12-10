@@ -17,6 +17,7 @@ const (
 	ERROR_OBJ    = "ERROR"
 	FUNCTION_OBJ = "FUNCTION"
 	STRING_OBJ   = "STRING"
+	BUILTIN_OBJ  = "BUILTIN"
 )
 
 var (
@@ -30,6 +31,8 @@ type Object interface {
 	String() string
 }
 
+type BuiltinFunction func(args ...Object) Object
+
 type (
 	Integer  struct{ Value int64 }
 	Boolean  struct{ Value bool }
@@ -41,7 +44,8 @@ type (
 		Params []ast.Identifier
 		Body   *ast.BlockStatement
 	}
-	String struct{ Value string }
+	String  struct{ Value string }
+	Builtin struct{ Fn BuiltinFunction }
 )
 
 func (i *Integer) Type() Type     { return INTEGER_OBJ }
@@ -77,4 +81,9 @@ func (f *Function) String() string {
 func (s *String) Type() Type { return STRING_OBJ }
 func (s *String) String() string {
 	return s.Value
+}
+
+func (b *Builtin) Type() Type { return BUILTIN_OBJ }
+func (b *Builtin) String() string {
+	return "builtin function"
 }

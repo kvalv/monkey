@@ -80,6 +80,23 @@ func TestStringExpression(t *testing.T) {
 	}
 }
 
+func TestBuiltinFunction(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{`len("1234")`, 4},
+		{`len("ab" + "cd")`, 4},
+		// {`len("")`, 0}, // TODO :S
+		{`len(2)`, fmt.Errorf("type error: expected STRING but got INTEGER")},
+	}
+	for _, tc := range cases {
+		prog := expectParse(t, tc.input)
+		got := expectEval(t, prog)
+		expectLiteral(t, got, tc.expected)
+	}
+}
+
 func TestIfExpression(t *testing.T) {
 	cases := []struct {
 		input    string
