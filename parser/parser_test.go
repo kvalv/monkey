@@ -108,6 +108,34 @@ func TestBooleanExpression(t *testing.T) {
 	}
 }
 
+func TestParseString(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`"hello"`, "hello"},
+		{`"hello world"`, "hello world"},
+		{`""`, ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			p := parser.New(tc.input)
+			prog, err := p.Parse()
+			if err != nil {
+				t.Fatalf("got error %v", err)
+			}
+			if n := len(prog.Statements); n != 1 {
+				t.Fatalf("expected 1 statement but got %d", n)
+			}
+			stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
+			if !ok {
+				t.Fatalf("expected ExpressionStatement got %T", stmt)
+			}
+			expectString(t, stmt.Expr, tc.expected)
+		})
+	}
+}
+
 func TestPrefixParse(t *testing.T) {
 	p := parser.New("3")
 	prog, err := p.Parse()

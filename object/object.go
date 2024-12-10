@@ -16,6 +16,7 @@ const (
 	RETURN_OBJ   = "RETURN"
 	ERROR_OBJ    = "ERROR"
 	FUNCTION_OBJ = "FUNCTION"
+	STRING_OBJ   = "STRING"
 )
 
 var (
@@ -40,6 +41,7 @@ type (
 		Params []ast.Identifier
 		Body   *ast.BlockStatement
 	}
+	String struct{ Value string }
 )
 
 func (i *Integer) Type() Type     { return INTEGER_OBJ }
@@ -70,4 +72,9 @@ func (f *Function) String() string {
 		strings.Join(params, ", "),
 		indent2(f.Body.String()),
 	)
+}
+
+func (s *String) Type() Type { return STRING_OBJ }
+func (s *String) String() string {
+	return s.Value
 }

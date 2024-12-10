@@ -80,6 +80,10 @@ func (l *Lex) Next() (t token.Token) {
 	}
 	if c == '"' {
 		l.advance()
+		if l.curr() == '"' {
+			l.advance()
+			return l.create(token.STRING, `""`)
+		}
 		word := l.takeWhile(func(b byte) bool { return b != '"' }, true)
 		return l.create(token.STRING, fmt.Sprintf(`"%s`, word))
 	}

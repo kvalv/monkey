@@ -43,6 +43,7 @@ func New(input string, opts ...parseOpt) *Parser {
 	p.prefixFns[token.BANG] = p.parsePrefixExpression
 	p.prefixFns[token.MINUS] = p.parsePrefixExpression
 	p.prefixFns[token.INT] = p.parseNumber
+	p.prefixFns[token.STRING] = p.parseString
 	p.prefixFns[token.IDENT] = p.parseIdentifier
 	p.prefixFns[token.TRUE] = p.parseBoolean
 	p.prefixFns[token.FALSE] = p.parseBoolean
@@ -320,6 +321,20 @@ func (p *Parser) parseNumber() ast.Expression {
 	}
 	out.Token = p.curr
 	out.Value = value
+	return &out
+}
+
+func (p *Parser) parseString() ast.Expression {
+	var out ast.String
+	defer p.tracer.Trace("parseString")(&out)
+	if p.curr.Type != token.STRING {
+		p.errExpected(token.STRING)
+		return nil
+	}
+	end := len(p.curr.Literal) - 1
+	stripped := p.curr.Literal[1:end]
+	out.Token = p.curr
+	out.Value = stripped
 	return &out
 }
 

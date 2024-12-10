@@ -42,6 +42,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return object.TRUE
 		}
 		return object.FALSE
+	case *ast.String:
+		defer trace("evalString")(nil)
+		return evalString(n, env)
 	case *ast.Number:
 		defer trace("evalNumber")(nil)
 		return &object.Integer{Value: int64(n.Value)}

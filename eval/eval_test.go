@@ -61,6 +61,20 @@ func TestBooleanExpression(t *testing.T) {
 	}
 }
 
+func TestStringExpression(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{`"hello"`, "hello"},
+	}
+	for _, tc := range cases {
+		prog := expectParse(t, tc.input)
+		got := expectEval(t, prog)
+		expectStringLiteral(t, got, tc.expected)
+	}
+}
+
 func TestIfExpression(t *testing.T) {
 	cases := []struct {
 		input    string
@@ -258,6 +272,16 @@ func expectBooleanLiteral(t *testing.T, got object.Object, expected bool) {
 	}
 	if v.Value != expected {
 		t.Fatalf("value mismatch: expected %t got %t", expected, v.Value)
+	}
+}
+func expectStringLiteral(t *testing.T, got object.Object, expected string) {
+	t.Helper()
+	v, ok := got.(*object.String)
+	if !ok {
+		t.Fatalf("expected *object.String, got %T (%q)", got, got)
+	}
+	if v.Value != expected {
+		t.Fatalf("value mismatch: expected %q got %q", expected, v.Value)
 	}
 }
 

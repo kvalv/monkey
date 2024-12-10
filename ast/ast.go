@@ -8,24 +8,82 @@ import (
 	"github.com/kvalv/monkey/token"
 )
 
-type Node interface {
-	TokenLiteral() string
-	String() string
-}
-
-type Expression interface {
-	Node
-	expr()
-}
-type Statement interface {
-	Node
-	stmt()
-}
-
-type Program struct {
-	token.Token
-	Statements []Statement
-}
+type (
+	Node interface {
+		TokenLiteral() string
+		String() string
+	}
+	Expression interface {
+		Node
+		expr()
+	}
+	Statement interface {
+		Node
+		stmt()
+	}
+	Program struct {
+		token.Token
+		Statements []Statement
+	}
+	LetStatement struct {
+		token.Token
+		Lhs *Identifier
+		Rhs Expression
+	}
+	ExpressionStatement struct {
+		token.Token
+		Expr Expression
+	}
+	Identifier struct {
+		token.Token
+		Value string
+	}
+	Number struct {
+		token.Token
+		Value int
+	}
+	Boolean struct {
+		token.Token
+		Value bool
+	}
+	String struct {
+		token.Token
+		Value string // we strip the quotes -> `"cat"` -> `cat`
+	}
+	PrefixExpression struct {
+		token.Token
+		Op  string
+		Rhs Expression
+	}
+	InfixExpression struct {
+		token.Token
+		Op       string
+		Lhs, Rhs Expression
+	}
+	BlockStatement struct {
+		token.Token
+		Statements []Statement
+	}
+	IfExpression struct {
+		token.Token
+		Cond       Expression
+		Then, Else *BlockStatement
+	}
+	FunctionLiteral struct {
+		token.Token
+		Params []Identifier
+		Body   *BlockStatement
+	}
+	CallExpression struct {
+		token.Token
+		Function Expression // identifier or FunctionLiteral
+		Params   []Expression
+	}
+	ReturnExpression struct {
+		token.Token
+		Value Expression
+	}
+)
 
 func (n *Program) TokenLiteral() string { return n.Token.Literal }
 func (n *Program) stmt()                {}
@@ -37,12 +95,6 @@ func (n *Program) String() string {
 	return buf.String()
 }
 
-type LetStatement struct {
-	token.Token
-	Lhs *Identifier
-	Rhs Expression
-}
-
 func (n *LetStatement) String() string {
 	if n == nil {
 		return "<LetStatement:nil>"
@@ -52,19 +104,9 @@ func (n *LetStatement) String() string {
 func (n *LetStatement) TokenLiteral() string { return n.Token.Literal }
 func (n *LetStatement) stmt()                {}
 
-type ExpressionStatement struct {
-	token.Token
-	Expr Expression
-}
-
 func (n *ExpressionStatement) TokenLiteral() string { return n.Token.Literal }
 func (n *ExpressionStatement) stmt()                {}
 func (n *ExpressionStatement) String() string       { return fmt.Sprintf("%s", n.Expr) }
-
-type Identifier struct {
-	token.Token
-	Value string
-}
 
 func (n *Identifier) TokenLiteral() string { return n.Token.Literal }
 func (n *Identifier) expr()                {}
@@ -75,48 +117,25 @@ func (n *Identifier) String() string {
 	return n.Value
 }
 
-type Number struct {
-	token.Token
-	Value int
-}
-
 func (n *Number) TokenLiteral() string { return n.Token.Literal }
 func (n *Number) expr()                {}
 func (n *Number) String() string       { return fmt.Sprintf("%d", n.Value) }
-
-type Boolean struct {
-	token.Token
-	Value bool
-}
 
 func (n *Boolean) TokenLiteral() string { return n.Token.Literal }
 func (n *Boolean) expr()                {}
 func (n *Boolean) String() string       { return fmt.Sprintf("%t", n.Value) }
 
-type PrefixExpression struct {
-	token.Token
-	Op  string
-	Rhs Expression
-}
+func (n *String) TokenLiteral() string { return n.Token.Literal }
+func (n *String) expr()                {}
+func (n *String) String() string       { return fmt.Sprintf("%q", n.Value) }
 
 func (n *PrefixExpression) TokenLiteral() string { return n.Token.Literal }
 func (n *PrefixExpression) expr()                {}
 func (n *PrefixExpression) String() string       { return fmt.Sprintf("(%s%s)", n.Op, n.Rhs) }
 
-type InfixExpression struct {
-	token.Token
-	Op       string
-	Lhs, Rhs Expression
-}
-
 func (n *InfixExpression) TokenLiteral() string { return n.Token.Literal }
 func (n *InfixExpression) expr()                {}
 func (n *InfixExpression) String() string       { return fmt.Sprintf("(%s %s %s)", n.Lhs, n.Op, n.Rhs) }
-
-type BlockStatement struct {
-	token.Token
-	Statements []Statement
-}
 
 func (n *BlockStatement) TokenLiteral() string { return n.Token.Literal }
 func (n *BlockStatement) stmt()                {}
@@ -133,12 +152,6 @@ func (n *BlockStatement) String() string {
 	return w.String()
 }
 
-type IfExpression struct {
-	token.Token
-	Cond       Expression
-	Then, Else *BlockStatement
-}
-
 func (n *IfExpression) TokenLiteral() string { return n.Token.Literal }
 func (n *IfExpression) expr()                {}
 func (n *IfExpression) String() string {
@@ -153,12 +166,6 @@ func (n *IfExpression) String() string {
 	return w.String()
 }
 
-type FunctionLiteral struct {
-	token.Token
-	Params []Identifier
-	Body   *BlockStatement
-}
-
 func (n *FunctionLiteral) TokenLiteral() string { return n.Token.Literal }
 func (n *FunctionLiteral) expr()                {}
 func (n *FunctionLiteral) String() string {
@@ -167,12 +174,6 @@ func (n *FunctionLiteral) String() string {
 		params = append(params, p.String())
 	}
 	return fmt.Sprintf("fn(%s) %s", strings.Join(params, ", "), n.Body.String())
-}
-
-type CallExpression struct {
-	token.Token
-	Function Expression // identifier or FunctionLiteral
-	Params   []Expression
 }
 
 func (n *CallExpression) TokenLiteral() string { return n.Token.Literal }
@@ -186,11 +187,6 @@ func (n *CallExpression) String() string {
 		params = append(params, p.String())
 	}
 	return fmt.Sprintf("%s(%s)", n.Function, params)
-}
-
-type ReturnExpression struct {
-	token.Token
-	Value Expression
 }
 
 func (n *ReturnExpression) TokenLiteral() string { return n.Token.Literal }

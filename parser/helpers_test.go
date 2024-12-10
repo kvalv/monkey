@@ -37,6 +37,15 @@ func expectNumberLiteral(t *testing.T, got ast.Expression, value int) {
 		t.Fatalf("expectNumberLiteral: expected %d but got %d", value, e.Value)
 	}
 }
+func expectString(t *testing.T, got ast.Expression, value string) {
+	e, ok := got.(*ast.String)
+	if !ok {
+		t.Fatalf("expected number - got %T", got)
+	}
+	if e.Value != value {
+		t.Fatalf("expectString: expected %q but got %q", value, e.Value)
+	}
+}
 
 func expectIdentifierLiteral(t *testing.T, got ast.Expression, value string) {
 	e, ok := got.(*ast.Identifier)
