@@ -18,6 +18,7 @@ const (
 	FUNCTION_OBJ = "FUNCTION"
 	STRING_OBJ   = "STRING"
 	BUILTIN_OBJ  = "BUILTIN"
+	ARRAY_OBJ    = "ARRAY"
 )
 
 var (
@@ -46,6 +47,7 @@ type (
 	}
 	String  struct{ Value string }
 	Builtin struct{ Fn BuiltinFunction }
+	Array   struct{ Elems []Object }
 )
 
 func (i *Integer) Type() Type     { return INTEGER_OBJ }
@@ -86,4 +88,13 @@ func (s *String) String() string {
 func (b *Builtin) Type() Type { return BUILTIN_OBJ }
 func (b *Builtin) String() string {
 	return "builtin function"
+}
+
+func (a *Array) Type() Type { return ARRAY_OBJ }
+func (a *Array) String() string {
+	var elems []string
+	for _, e := range a.Elems {
+		elems = append(elems, e.String())
+	}
+	return fmt.Sprintf("[%s]", strings.Join(elems, ", "))
 }

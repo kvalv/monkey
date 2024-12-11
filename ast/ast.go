@@ -83,6 +83,15 @@ type (
 		token.Token
 		Value Expression
 	}
+	Array struct {
+		token.Token
+		Elems []Expression
+	}
+	ArrayIndex struct {
+		token.Token
+		Array Expression // ident or array
+		Index Expression // anything, but should evaluate to a number
+	}
 )
 
 func (n *Program) TokenLiteral() string { return n.Token.Literal }
@@ -192,3 +201,25 @@ func (n *CallExpression) String() string {
 func (n *ReturnExpression) TokenLiteral() string { return n.Token.Literal }
 func (n *ReturnExpression) expr()                {}
 func (n *ReturnExpression) String() string       { return fmt.Sprintf("return %s", n.Value.String()) }
+
+func (a *Array) TokenLiteral() string { return a.Token.Literal }
+func (a *Array) expr()                {}
+func (a *Array) String() string {
+	if a == nil {
+		return "<Array:nil>"
+	}
+	var elems []string
+	for _, elem := range a.Elems {
+		elems = append(elems, elem.String())
+	}
+	return fmt.Sprintf("[%s]", strings.Join(elems, ", "))
+}
+
+func (a *ArrayIndex) TokenLiteral() string { return a.Token.Literal }
+func (a *ArrayIndex) expr()                {}
+func (a *ArrayIndex) String() string {
+	if a == nil || a.Array == nil || a.Index == nil {
+		return "<ArrayIndex:nil>"
+	}
+	return fmt.Sprintf("%s%s", a.Array.String(), a.Index.String())
+}

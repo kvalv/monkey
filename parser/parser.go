@@ -38,6 +38,9 @@ func New(input string, opts ...parseOpt) *Parser {
 		infixFns:  make(map[token.Type]InfixFn),
 		tracer:    tracer.New(io.Discard),
 	}
+	for _, o := range opts {
+		o(p)
+	}
 	p.advance() // populate curr and next
 	p.advance()
 	p.prefixFns[token.BANG] = p.parsePrefixExpression
@@ -51,6 +54,7 @@ func New(input string, opts ...parseOpt) *Parser {
 	p.prefixFns[token.IF] = p.parseIfExpression
 	p.prefixFns[token.FUNC] = p.parseFunctionLiteral
 	p.prefixFns[token.RETURN] = p.parseReturnExpression
+	p.prefixFns[token.SOPEN] = p.parseArray
 
 	p.infixFns[token.NEQ] = p.parseInfixExpression
 	p.infixFns[token.EQ] = p.parseInfixExpression
@@ -61,6 +65,7 @@ func New(input string, opts ...parseOpt) *Parser {
 	p.infixFns[token.GT] = p.parseInfixExpression
 	p.infixFns[token.Lt] = p.parseInfixExpression
 	p.infixFns[token.POPEN] = p.parseCallExpression // todo: function call
+	p.infixFns[token.SOPEN] = p.parseArrayIndexExpression
 	return p
 }
 func (p *Parser) advance() {
@@ -175,6 +180,24 @@ func (p *Parser) parseGroupExpression() ast.Expression {
 	p.advance()
 	return exp
 }
+
+func (p *Parser) parseArray() ast.Expression {
+	arr := &ast.Array{Token: p.curr}
+	defer p.tracer.Trace("parseArray")(arr)
+	p.advance()
+	for {
+		switch p.curr.Type {
+		case token.COMMA:
+			p.advance()
+		case token.SCLOSE:
+			return arr
+		default:
+			arr.Elems = append(arr.Elems, p.parseExpression(LOWEST))
+			p.advance()
+		}
+	}
+}
+
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	expr := &ast.ExpressionStatement{Token: p.curr}
 	defer p.tracer.Trace("parseExpressionStatement")(expr)
@@ -421,4 +444,19 @@ func (p *Parser) parseCallExpression(precedence int, left ast.Expression) ast.Ex
 		panic("params nil")
 	}
 	return out
+}
+
+func (p *Parser) parseArrayIndexExpression(_ int, left ast.Expression) ast.Expression {
+	arrIdx := &ast.ArrayIndex{Token: p.curr, Array: left}
+	defer p.tracer.Trace("parseArrayIndexExpression")(arrIdx)
+	p.advance()
+	if arrIdx.Index = p.parseExpression(LOWEST); arrIdx.Index == nil {
+		p.errorf("index is empty")
+		return nil
+	}
+	if p.next.Type != token.SCLOSE {
+		p.errExpected(token.SCLOSE)
+		return nil
+	}
+	return arrIdx
 }

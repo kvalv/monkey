@@ -10,6 +10,7 @@ const (
 	SUM
 	PRODUCT
 	PREFIX
+	ARRAY_INDEX
 	FUNCTION_CALL
 )
 
@@ -24,6 +25,7 @@ var lookup map[token.Type]int = map[token.Type]int{
 	token.GT:    LESSGREATER,
 	token.Lt:    LESSGREATER,
 	token.POPEN: FUNCTION_CALL,
+	token.SOPEN: ARRAY_INDEX,
 }
 
 func tokenPrecedence(ttype token.Type) int {

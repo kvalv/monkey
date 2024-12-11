@@ -237,6 +237,28 @@ func TestFunctionApplication(t *testing.T) {
 	}
 }
 
+func TestArrayIndexing(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{"[1, 2, 3][1]", 2},
+		{"[1, 2, 3][true]", fmt.Errorf("object type mismatch")},
+		{"[1, 2, 3][4]", fmt.Errorf("List index out of range: 4 > 3")},
+		{"let index = 2; [1, 2, 3][index]", 3},
+		{"[1, 2, 3][1 - 1 - 1 + 1]", 1},
+		{"[1, 2, 3][-123]", fmt.Errorf("negative indices not allowed")},
+		// {"let a = [1,2,3][1]; a", 2}, // TODO
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			prog := expectParse(t, tc.input)
+			got := expectEval(t, prog)
+			expectLiteral(t, got, tc.expected)
+		})
+	}
+}
+
 func expectParse(t *testing.T, input string) *ast.Program {
 	t.Helper()
 	prog, errs := parser.New(input).Parse()

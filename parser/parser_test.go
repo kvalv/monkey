@@ -1,6 +1,8 @@
 package parser_test
 
 import (
+	"log"
+	"os"
 	"testing"
 
 	"github.com/kvalv/monkey/ast"
@@ -104,6 +106,77 @@ func TestBooleanExpression(t *testing.T) {
 				t.Fatalf("expected ExpressionStatement got %T", stmt)
 			}
 			expectLiteral(t, stmt.Expr, tc.expected)
+		})
+	}
+}
+
+func TestArray(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+		length   int
+	}{
+		{input: "[a, b]", expected: "[a, b]", length: 2},
+		{input: "[a, 1, true]", expected: "[a, 1, true]", length: 3},
+		{input: "[]", expected: "[]", length: 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			p := parser.New(tc.input)
+			prog, err := p.Parse()
+			if err != nil {
+				t.Fatalf("got error %v", err)
+			}
+			if n := len(prog.Statements); n != 1 {
+				t.Fatalf("expected 1 statement but got %d", n)
+			}
+			stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
+			if !ok {
+				t.Fatalf("expected ExpressionStatement got %T", stmt)
+			}
+			arr, ok := stmt.Expr.(*ast.Array)
+			if !ok {
+				t.Fatalf("expected *ast.Array got %T", stmt)
+			}
+			if len := len(arr.Elems); len != tc.length {
+				t.Fatalf("length mismatch: expected %d got=%d", tc.length, len)
+			}
+			got := stmt.String()
+			if got != tc.expected {
+				t.Fatalf("string mismatch: expected %q but got %q", tc.expected, got)
+			}
+		})
+	}
+}
+
+func TestArrayIndexing(t *testing.T) {
+	log.SetOutput(os.Stdout)
+	tests := []struct {
+		input string
+		key   any
+	}{
+		{input: "[1, 2, 3][ident]", key: "ident"},
+		{input: "[1, 2, 3][2]", key: 2},
+	}
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			p := parser.New(tc.input)
+			prog, err := p.Parse()
+			if err != nil {
+				t.Fatalf("got error %v", err)
+			}
+			if n := len(prog.Statements); n != 1 {
+				t.Fatalf("expected 1 statement but got %d", n)
+			}
+			stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
+			if !ok {
+				t.Fatalf("expected ExpressionStatement got %T", stmt)
+			}
+			arrIndex, ok := stmt.Expr.(*ast.ArrayIndex)
+			if !ok {
+				t.Fatalf("expected *ast.ArrayIndex got %T", stmt)
+			}
+			expectLiteral(t, arrIndex.Index, tc.key)
 		})
 	}
 }

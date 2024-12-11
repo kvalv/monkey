@@ -11,7 +11,7 @@ import (
 )
 
 func TestNextToken(t *testing.T) {
-	input := `=+-,!*; != == foo fn return {} () 1 11 > < true false if else "hello" "hello world" "" x`
+	input := `=+-,!*; != == foo fn return {} () 1 11 > < true false if else "hello" "hello world" "" x arr[index]`
 	l := lex.New(input)
 	log.SetOutput(os.Stdout)
 	expected := []token.Token{
@@ -43,6 +43,10 @@ func TestNextToken(t *testing.T) {
 		{Type: token.STRING, Literal: `"hello world"`},
 		{Type: token.STRING, Literal: `""`},
 		{Type: token.IDENT, Literal: `x`},
+		{Type: token.IDENT, Literal: "arr"},
+		{Type: token.SOPEN, Literal: "["},
+		{Type: token.IDENT, Literal: "index"},
+		{Type: token.SCLOSE, Literal: "]"},
 		{Type: token.EOF, Literal: ""},
 	}
 	for i, exp := range expected {

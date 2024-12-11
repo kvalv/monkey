@@ -142,6 +142,8 @@ var builtins map[string]token.Type = map[string]token.Type{
 	";": token.SEMICOLON,
 	">": token.GT,
 	"<": token.Lt,
+	"[": token.SOPEN,
+	"]": token.SCLOSE,
 
 	"if":     token.IF,
 	"else":   token.ELSE,

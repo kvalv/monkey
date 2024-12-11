@@ -13,6 +13,8 @@ const (
 	PCLOSE Type = ")"
 	LBRACK Type = "{"
 	RBRACK Type = "}"
+	SOPEN  Type = "["
+	SCLOSE Type = "]"
 
 	FUNC   Type = "fn"
 	RETURN Type = "return"
