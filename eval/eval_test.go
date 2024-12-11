@@ -248,7 +248,13 @@ func TestArrayIndexing(t *testing.T) {
 		{"let index = 2; [1, 2, 3][index]", 3},
 		{"[1, 2, 3][1 - 1 - 1 + 1]", 1},
 		{"[1, 2, 3][-123]", fmt.Errorf("negative indices not allowed")},
-		// {"let a = [1,2,3][1]; a", 2}, // TODO
+		{"[2+2][0]", 4},
+		{"rest([1, 2, 3])", []any{2, 3}},
+		{"first([1, 2, 3])", 1},
+		{"first([])", nil},
+		{"push([1, 2], 3, 4)", []any{1, 2, 3, 4}},
+		{"push([1])", []any{1}},
+		{"push([])", []any{}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
@@ -295,6 +301,18 @@ func expectLiteral(t *testing.T, got object.Object, expected any) {
 		expectStringLiteral(t, got, e)
 	case error:
 		expectErrorMessage(t, got, e.Error())
+	case []any:
+		arr, ok := got.(*object.Array)
+		if !ok {
+			t.Fatalf("not an array, got %T", got)
+		}
+		if len(arr.Elems) != len(e) {
+			t.Fatalf("length mismatch - got %d expected %d elements", len(arr.Elems), len(e))
+		}
+		for i, exp := range e {
+			got := arr.Elems[i]
+			expectLiteral(t, got, exp)
+		}
 	default:
 		t.Fatalf("unexpected type: %T %q", got, got)
 	}
