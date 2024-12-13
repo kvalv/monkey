@@ -243,7 +243,7 @@ func TestArrayIndexing(t *testing.T) {
 		expected any
 	}{
 		{"[1, 2, 3][1]", 2},
-		{"[1, 2, 3][true]", fmt.Errorf("object type mismatch")},
+		{"[1, 2, 3][true]", fmt.Errorf("Expected INTEGER")},
 		{"[1, 2, 3][4]", fmt.Errorf("List index out of range: 4 > 3")},
 		{"let index = 2; [1, 2, 3][index]", 3},
 		{"[1, 2, 3][1 - 1 - 1 + 1]", 1},
@@ -263,6 +263,29 @@ func TestArrayIndexing(t *testing.T) {
 			expectLiteral(t, got, tc.expected)
 		})
 	}
+}
+
+func TestHashLiteral(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{`{"foo": "bar"}["foo"]`, "bar"},
+		{`{"foo": "bar"}["123"]`, nil},
+		{`{true: true}[true]`, true},
+		{`{1: 2}[1]`, 2},
+		{`{}[123]`, nil},
+		{`let x = "hi"; {x: "mom"}["hi"]`, "mom"},
+		{`let h = {"a": 1}; h["a"] + h["a"]`, 2},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			prog := expectParse(t, tc.input)
+			got := expectEval(t, prog)
+			expectLiteral(t, got, tc.expected)
+		})
+	}
+
 }
 
 func expectParse(t *testing.T, input string) *ast.Program {

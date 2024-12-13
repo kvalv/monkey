@@ -8,6 +8,7 @@ const (
 	ILLEGAL Type = "ILLEGAL"
 	STRING  Type = "STRING"
 	COMMA   Type = ","
+	COLON   Type = ":"
 
 	POPEN  Type = "("
 	PCLOSE Type = ")"

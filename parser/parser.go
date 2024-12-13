@@ -55,6 +55,7 @@ func New(input string, opts ...parseOpt) *Parser {
 	p.prefixFns[token.FUNC] = p.parseFunctionLiteral
 	p.prefixFns[token.RETURN] = p.parseReturnExpression
 	p.prefixFns[token.SOPEN] = p.parseArray
+	p.prefixFns[token.LBRACK] = p.parseHashLiteral
 
 	p.infixFns[token.NEQ] = p.parseInfixExpression
 	p.infixFns[token.EQ] = p.parseInfixExpression
@@ -85,6 +86,9 @@ func (p *Parser) errExpected(tp ...token.Type) {
 	} else if len(tp) > 1 {
 		p.errorf("Parse(): expected one of %s, but got %v at %d..%d", tp, p.curr.Type, p.curr.Start, p.curr.End)
 	}
+}
+func (p *Parser) errEOF() {
+	p.errorf("Parse(): EOF")
 }
 
 func (p *Parser) currIsType(tp ...token.Type) bool {
@@ -458,5 +462,35 @@ func (p *Parser) parseArrayIndexExpression(_ int, left ast.Expression) ast.Expre
 		p.errExpected(token.SCLOSE)
 		return nil
 	}
+	p.advance()
 	return arrIdx
+}
+
+func (p *Parser) parseHashLiteral() ast.Expression {
+	hash := &ast.HashLiteral{Token: p.curr, Pairs: make(map[ast.Expression]ast.Expression)}
+	defer p.tracer.Trace("parseHashLiteral")(hash)
+	p.advance()
+	// while not } and eof ... we consume
+	for tp := p.curr.Type; tp != token.RBRACK; tp = p.curr.Type {
+		key := p.parseExpression(LOWEST)
+		if key == nil {
+			return nil
+		}
+		if p.next.Type != token.COLON {
+			p.errExpected(token.COLON)
+		}
+		p.advance()
+		p.advance()
+		value := p.parseExpression(LOWEST)
+		if value == nil {
+			return nil
+		}
+		hash.Pairs[key] = value
+		if p.next.Type == token.COMMA {
+			p.advance()
+			// we'll allow trailing commas: {"foo": "bar",} because why not..
+		}
+		p.advance()
+	}
+	return hash
 }

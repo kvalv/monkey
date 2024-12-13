@@ -25,7 +25,7 @@ func Start(w io.Writer, r io.Reader) {
 			continue
 		}
 		res := eval.Eval(prog, env)
-		fmt.Fprintf(w, "\n%s", res)
+		fmt.Fprintf(w, "%s", res)
 		fmt.Fprintf(w, "\n> ")
 	}
 }

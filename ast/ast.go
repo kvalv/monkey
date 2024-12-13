@@ -89,8 +89,13 @@ type (
 	}
 	ArrayIndex struct {
 		token.Token
-		Array Expression // ident or array
+		Array Expression // ident or array or Hash
 		Index Expression // anything, but should evaluate to a number
+	}
+	// {"foo": "bar", true: false, 1: 3}
+	HashLiteral struct {
+		token.Token
+		Pairs map[Expression]Expression
 	}
 )
 
@@ -221,5 +226,18 @@ func (a *ArrayIndex) String() string {
 	if a == nil || a.Array == nil || a.Index == nil {
 		return "<ArrayIndex:nil>"
 	}
-	return fmt.Sprintf("%s%s", a.Array.String(), a.Index.String())
+	return fmt.Sprintf("%s[%s]", a.Array.String(), a.Index.String())
+}
+
+func (h *HashLiteral) TokenLiteral() string { return h.Token.Literal }
+func (h *HashLiteral) expr()                {}
+func (h *HashLiteral) String() string {
+	if h == nil {
+		return "<HashLiteral:nil>"
+	}
+	var pairs []string
+	for k, v := range h.Pairs {
+		pairs = append(pairs, fmt.Sprintf("%s: %s", k.String(), v.String()))
+	}
+	return fmt.Sprintf("{%s}", strings.Join(pairs, ", "))
 }

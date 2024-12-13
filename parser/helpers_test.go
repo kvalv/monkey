@@ -7,15 +7,17 @@ import (
 )
 
 func expectLiteral(t *testing.T, got ast.Expression, value any) {
-	switch v := value.(type) {
+	switch lit := value.(type) {
 	case int:
-		expectNumberLiteral(t, got, v)
+		expectNumberLiteral(t, got, lit)
 	case string:
-		expectIdentifierLiteral(t, got, v)
+		expectIdentifierLiteral(t, got, lit)
 	case bool:
-		expectBooleanLiteral(t, got, v)
+		expectBooleanLiteral(t, got, lit)
+	case map[string]any:
+		expectHashLiteral(t, got, lit)
 	default:
-		t.Fatalf("unknown type %T", v)
+		t.Fatalf("unknown type %T", lit)
 	}
 }
 func expectBooleanLiteral(t *testing.T, got ast.Expression, value bool) {
@@ -27,7 +29,29 @@ func expectBooleanLiteral(t *testing.T, got ast.Expression, value bool) {
 		t.Fatalf("value mismatch: expected %t but got %t", value, e.Value)
 	}
 }
-
+func expectHashLiteral(t *testing.T, got ast.Expression, want map[string]any) {
+	hash, ok := got.(*ast.HashLiteral)
+	if !ok {
+		t.Fatalf("expected boolean - got %T", got)
+	}
+	if n, m := len(hash.Pairs), len(want); n != m {
+		t.Fatalf("expected %d keys in HashLiteral; got=%d", m, n)
+	}
+	for k, v := range hash.Pairs {
+		// hack: we're assuming the keys are strings, and the
+		str, ok := k.(*ast.String)
+		if !ok {
+			t.Fatalf("not a string key")
+		}
+		// str.Value
+		// unquote := func(s string) string { return s[1 : len(s)-1] }
+		wantValue, ok := want[str.Value]
+		if !ok {
+			t.Fatalf("excess key '%s'", str.Value)
+		}
+		expectLiteral(t, v, wantValue)
+	}
+}
 func expectNumberLiteral(t *testing.T, got ast.Expression, value int) {
 	e, ok := got.(*ast.Number)
 	if !ok {

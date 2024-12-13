@@ -135,6 +135,7 @@ var builtins map[string]token.Type = map[string]token.Type{
 	"*": token.MUL,
 	"/": token.DIV,
 	",": token.COMMA,
+	":": token.COLON,
 	"(": token.POPEN,
 	")": token.PCLOSE,
 	"{": token.LBRACK,

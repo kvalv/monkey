@@ -19,6 +19,7 @@ const (
 	STRING_OBJ   = "STRING"
 	BUILTIN_OBJ  = "BUILTIN"
 	ARRAY_OBJ    = "ARRAY"
+	HASH_OBJ     = "HASH"
 )
 
 var (
@@ -33,6 +34,7 @@ type Object interface {
 }
 
 type BuiltinFunction func(args ...Object) Object
+type Pair struct{ Key, Value Object }
 
 type (
 	Integer  struct{ Value int64 }
@@ -48,6 +50,7 @@ type (
 	String  struct{ Value string }
 	Builtin struct{ Fn BuiltinFunction }
 	Array   struct{ Elems []Object }
+	Hash    struct{ Pairs map[string]Pair }
 )
 
 func (i *Integer) Type() Type     { return INTEGER_OBJ }
@@ -66,6 +69,7 @@ func (e *Error) Type() Type                 { return ERROR_OBJ }
 func (e *Error) String() string             { return fmt.Sprintf("error: %s", e.Message) }
 func Errorf(format string, a ...any) *Error { return &Error{Message: fmt.Sprintf(format, a...)} }
 func IsError(o Object) bool                 { return o.Type() == ERROR_OBJ }
+func ErrorExpected(s string) *Error         { return Errorf("Expected %s", s) }
 
 func (f *Function) Type() Type { return FUNCTION_OBJ }
 func (f *Function) String() string {
@@ -97,4 +101,13 @@ func (a *Array) String() string {
 		elems = append(elems, e.String())
 	}
 	return fmt.Sprintf("[%s]", strings.Join(elems, ", "))
+}
+
+func (h *Hash) Type() Type { return HASH_OBJ }
+func (h *Hash) String() string {
+	var pairs []string
+	for _, pair := range h.Pairs {
+		pairs = append(pairs, fmt.Sprintf("%s: %s", pair.Key.String(), pair.Value.String()))
+	}
+	return fmt.Sprintf("{%s}", strings.Join(pairs, ", "))
 }

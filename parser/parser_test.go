@@ -181,6 +181,59 @@ func TestArrayIndexing(t *testing.T) {
 	}
 }
 
+func TestHashLiteral(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected map[string]any
+	}{
+		{`{"a": 1, "b": true, "c": wow}`, map[string]any{"a": 1, "b": true, "c": "wow"}},
+		{`{}`, map[string]any{}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			p := parser.New(tc.input, parser.EnableTracing())
+			prog, err := p.Parse()
+			if err != nil {
+				t.Fatalf("got error %v", err)
+			}
+			if n := len(prog.Statements); n != 1 {
+				t.Fatalf("expected 1 statement but got %d", n)
+			}
+			stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
+			if !ok {
+				t.Fatalf("expected ExpressionStatement got %T", stmt)
+			}
+			expectHashLiteral(t, stmt.Expr, tc.expected)
+		})
+	}
+}
+func TestHashLiteralInfixExpression(t *testing.T) {
+	prog, err := parser.New(`x[1] + 1`, parser.EnableTracing()).Parse()
+	if err != nil {
+		t.Fatalf("got error %v", err)
+	}
+	if n := len(prog.Statements); n != 1 {
+		t.Fatalf("expected 1 statement but got %d", n)
+	}
+	stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("expected ExpressionStatement got %T", stmt)
+	}
+	infix, ok := stmt.Expr.(*ast.InfixExpression)
+	if !ok {
+		t.Fatalf("expected *ast.InfixExpression got %T", stmt)
+	}
+	if exp, got := "x[1]", infix.Lhs.String(); got != exp {
+		t.Fatalf("lhs mismatch - expected %q got %q", exp, got)
+	}
+	if exp, got := "+", infix.Op; got != exp {
+		t.Fatalf("op mismatch - expected %q got %q", exp, got)
+	}
+	if exp, got := "1", infix.Rhs.String(); got != exp {
+		t.Fatalf("rhs mismatch - expected %q got %q", exp, got)
+	}
+}
+
 func TestParseString(t *testing.T) {
 	tests := []struct {
 		input    string

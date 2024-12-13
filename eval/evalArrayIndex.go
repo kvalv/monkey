@@ -6,25 +6,43 @@ import (
 )
 
 func evalArrayIndex(arr *ast.ArrayIndex, env *object.Environment) object.Object {
-	arrayObj, err := evalTo[*object.Array](arr.Array, env)
-	if err != nil {
-		return err
+
+	indexObj := Eval(arr.Index, env)
+	if object.IsError(indexObj) {
+		return indexObj
 	}
 
-	indexObj, err := evalTo[*object.Integer](arr.Index, env)
-	if err != nil {
-		return err
+	obj := Eval(arr.Array, env)
+	if object.IsError(obj) {
+		return obj
 	}
 
-	n := int(indexObj.Value)
-	if n < 0 {
-		return object.Errorf("negative indices not allowed")
+	// we're either dealing with arrays or indexes. Let's check arrays first
+	if arrayObj, ok := obj.(*object.Array); ok {
+		intIndex, ok := indexObj.(*object.Integer)
+		if !ok {
+			return object.ErrorExpected(object.INTEGER_OBJ)
+		}
+		n := int(intIndex.Value)
+		if n >= len(arrayObj.Elems) {
+			return object.Errorf("List index out of range: %d > %d", n, len(arrayObj.Elems))
+		}
+		if n < 0 {
+			return object.Errorf("negative indices not allowed")
+		}
+		return arrayObj.Elems[n]
 	}
 
-	if n >= len(arrayObj.Elems) {
-		return object.Errorf("List index out of range: %d > %d", n, len(arrayObj.Elems))
+	// Is it a hash?
+	if hashObj, ok := obj.(*object.Hash); ok {
+		pair, ok := hashObj.Pairs[computeStringHash(indexObj)]
+		if !ok {
+			return object.NULL
+		}
+		return pair.Value
 	}
-	return arrayObj.Elems[n]
+
+	return object.Errorf("indexing is only supported for arrays or hashes")
 }
 
 func evalTo[T object.Object](node ast.Expression, env *object.Environment) (T, *object.Error) {
