@@ -1,6 +1,7 @@
 package object
 
 import (
+	"crypto/md5"
 	"fmt"
 	"strings"
 
@@ -110,4 +111,8 @@ func (h *Hash) String() string {
 		pairs = append(pairs, fmt.Sprintf("%s: %s", pair.Key.String(), pair.Value.String()))
 	}
 	return fmt.Sprintf("{%s}", strings.Join(pairs, ", "))
+}
+func (h *Hash) Set(key Object, value Object) {
+	hstr := fmt.Sprintf("%x", md5.Sum([]byte(key.String())))
+	h.Pairs[hstr] = Pair{Key: key, Value: value}
 }

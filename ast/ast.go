@@ -30,6 +30,11 @@ type (
 		Lhs *Identifier
 		Rhs Expression
 	}
+	AssignExpression struct {
+		token.Token
+		Lhs Expression
+		Rhs Expression
+	}
 	ExpressionStatement struct {
 		token.Token
 		Expr Expression
@@ -240,4 +245,13 @@ func (h *HashLiteral) String() string {
 		pairs = append(pairs, fmt.Sprintf("%s: %s", k.String(), v.String()))
 	}
 	return fmt.Sprintf("{%s}", strings.Join(pairs, ", "))
+}
+
+func (ae *AssignExpression) TokenLiteral() string { return ae.Token.Literal }
+func (ae *AssignExpression) expr()                {}
+func (ae *AssignExpression) String() string {
+	if ae == nil {
+		return "<AssignExpression:nil>"
+	}
+	return fmt.Sprintf("%s=%s", ae.Lhs, ae.Rhs)
 }

@@ -66,6 +66,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.HashLiteral:
 		defer trace("evalHashLiteral")(nil)
 		return evalHashLiteral(n, env)
+	case *ast.AssignExpression:
+		defer trace("evalAssignExpression")(nil)
+		return evalAssignExpression(n, env)
 	}
 	return object.Errorf("unable to evaluate node of type %T", node)
 }

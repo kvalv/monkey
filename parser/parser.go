@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strconv"
 
@@ -67,6 +68,7 @@ func New(input string, opts ...parseOpt) *Parser {
 	p.infixFns[token.Lt] = p.parseInfixExpression
 	p.infixFns[token.POPEN] = p.parseCallExpression // todo: function call
 	p.infixFns[token.SOPEN] = p.parseArrayIndexExpression
+	p.infixFns[token.ASSIGN] = p.parseAssignExpression
 	return p
 }
 func (p *Parser) advance() {
@@ -272,6 +274,9 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 			return nil
 		}
 		expr = fn(tokenPrecedence(p.curr.Type), expr)
+		log.Printf("expr=%q next=%q precedence=%d tokenPrecedence(next)=%d", expr,
+			p.next.Literal,
+			precedence, tokenPrecedence(p.next.Type))
 	}
 
 	return expr
@@ -493,4 +498,16 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 		p.advance()
 	}
 	return hash
+}
+
+func (p *Parser) parseAssignExpression(_ int, left ast.Expression) ast.Expression {
+	aexpr := &ast.AssignExpression{Token: p.curr, Lhs: left}
+	defer p.tracer.Trace("parseAssignExpression")(aexpr)
+	p.advance()
+
+	if aexpr.Rhs = p.parseExpression(LOWEST); aexpr.Rhs == nil {
+		return nil
+	}
+
+	return aexpr
 }

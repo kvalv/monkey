@@ -233,6 +233,29 @@ func TestHashLiteralInfixExpression(t *testing.T) {
 		t.Fatalf("rhs mismatch - expected %q got %q", exp, got)
 	}
 }
+func TestHashAssignStatement(t *testing.T) {
+	prog, err := parser.New(`hash["foo"] = 123`, parser.EnableTracing()).Parse()
+	if err != nil {
+		t.Fatalf("got error %v", err)
+	}
+	if n := len(prog.Statements); n != 1 {
+		t.Fatalf("expected 1 statement but got %d", n)
+	}
+	stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("expected ExpressionStatement got %T", stmt)
+	}
+	aexpr, ok := stmt.Expr.(*ast.AssignExpression)
+	if !ok {
+		t.Fatalf("expected *ast.AssignExpression got %T", prog.Statements[0])
+	}
+	if exp, got := `hash["foo"]`, aexpr.Lhs.String(); got != exp {
+		t.Fatalf("lhs mismatch - expected %q got %q", exp, got)
+	}
+	if exp, got := "123", aexpr.Rhs.String(); got != exp {
+		t.Fatalf("rhs mismatch - expected %q got %q", exp, got)
+	}
+}
 
 func TestParseString(t *testing.T) {
 	tests := []struct {

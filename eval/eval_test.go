@@ -285,7 +285,22 @@ func TestHashLiteral(t *testing.T) {
 			expectLiteral(t, got, tc.expected)
 		})
 	}
+}
 
+func TestHashAssignment(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{`let h = {}; h[2] = 2; h[2]`, 2},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			prog := expectParse(t, tc.input)
+			got := expectEval(t, prog)
+			expectLiteral(t, got, tc.expected)
+		})
+	}
 }
 
 func expectParse(t *testing.T, input string) *ast.Program {
