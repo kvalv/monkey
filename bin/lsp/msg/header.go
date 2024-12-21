@@ -36,9 +36,9 @@ func parseHeader(b []byte) (string, int, error) {
 	key := normalizeKey(string(parts[0]))
 
 	// for now we're assuming all headers are integers
-	value, err := strconv.Atoi(string(parts[1]))
+	value, err := strconv.Atoi(strings.Trim(string(parts[1]), " "))
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to parse header value to int")
+		return "", 0, fmt.Errorf("failed to parse header value to int %q", parts[1])
 	}
 
 	return key, value, nil

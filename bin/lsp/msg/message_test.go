@@ -12,7 +12,7 @@ func TestMessageFromBytes(t *testing.T) {
 	t.Run("requests", func(t *testing.T) {
 		t.Run("request", func(t *testing.T) {
 			body := `{"jsonrpc":"2.0","method":"initialize","id":1,"params":{"processId":600660,"clientInfo":{"name":"Neovim","version":"0.11.0-dev+gf9dd682621"}}}`
-			want := &msg.InitializeRequest{
+			want := &msg.RequestInitialize{
 				JsonRPC: "2.0",
 				Method:  "initialize",
 				Id:      1,
@@ -25,7 +25,7 @@ func TestMessageFromBytes(t *testing.T) {
 				},
 			}
 			parsed := mustMessageFromString(t, body)
-			got, ok := parsed.Body.(*msg.InitializeRequest)
+			got, ok := parsed.Body.(*msg.RequestInitialize)
 			if !ok {
 				t.Fatalf("expected *msg.InitializeRequest, got %T", parsed.Body)
 			}

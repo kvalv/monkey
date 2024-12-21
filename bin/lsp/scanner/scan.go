@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"log"
 
 	"github.com/kvalv/monkey/bin/lsp/msg"
 )
@@ -35,10 +36,16 @@ func New(r io.Reader) *Scanner {
 			// Request more data.
 			return 0, nil, nil
 		}
+		if i == -1 {
+			// We don't have a full header yet.
+			log.Printf("data: %d, %s", i, string(data))
+			return 0, nil, nil
+		}
 
 		// We include 2 additional bytes (\r\n) for the last header key-value pair
 		headerLength := i + len(sep)
 
+		log.Printf("data: %d, %s", i, string(data[:headerLength]))
 		header, err := msg.HeaderFromBytes(data[:headerLength])
 		if err != nil {
 			return 0, nil, err

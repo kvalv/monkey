@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/kvalv/monkey/bin/lsp/msg"
 	"github.com/kvalv/monkey/bin/lsp/scanner"
@@ -42,16 +44,44 @@ func TestScan(t *testing.T) {
 			fmt.Fprintf(w, rpc.String())
 		}()
 		sc := scanner.New(r)
-		req := expectNextMessage[*msg.InitializeRequest](t, sc)
+		req := expectNextMessage[*msg.RequestInitialize](t, sc)
 		if req.Params.ProcessId != 600660 {
 			t.Fatalf("mismatch: got=%d", req.Params.ProcessId)
 		}
 	})
 }
 
+func TestScanLoopWaitsForInput(t *testing.T) {
+	stdin := `content-length:142\r\n\r\n{"jsonrpc":"2.0","method":"initialize","id":1,"params":{"processId":600660,"clientInfo":{"name":"Neovim","version":"0.11.0-dev+gf9dd682621"}}}content-leng`
+	r, w := io.Pipe()
+	go func() {
+		fmt.Fprintf(w, strings.Replace(stdin, `\r\n`, "\r\n", -1))
+	}()
+	sc := scanner.New(r)
+
+	expectNextMessage[*msg.RequestInitialize](t, sc)
+
+	// The next scan should hang because it's not a complete message yet.
+	// We check this by waiting a short time, failing if it completes
+	// before the deadline.
+	scanRes := make(chan bool)
+	go func() {
+		scanRes <- sc.Scan()
+	}()
+
+	select {
+	case <-scanRes:
+		t.Fatalf("expected no next message, but scan succeeded")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+}
+
 func expectNextMessage[T msg.Body](t *testing.T, sc *scanner.Scanner) T {
 	t.Helper()
-	sc.Scan()
+	if !sc.Scan() {
+		t.Fatalf("expected next message, but scan failed")
+	}
 	if err := sc.Err(); err != nil {
 		t.Fatalf("scan: %s", err)
 	}
@@ -78,6 +108,7 @@ func mustMessageFromString(t *testing.T, s string) *msg.Message {
 	t.Helper()
 	contentLength := len(s)
 	rpc := fmt.Sprintf("content-length:%d\r\n\r\n%s", contentLength, s)
+	t.Log(rpc)
 	parsed, err := msg.FromBytes([]byte(rpc))
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)

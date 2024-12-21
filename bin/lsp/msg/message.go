@@ -25,6 +25,7 @@ func New(msg Body) *Message {
 
 // Returns an appropriate method based on the bytes received
 func FromBytes(b []byte) (*Message, error) {
+	log.Printf("frombytes: %s", string(b))
 	parts := bytes.SplitN(b, []byte(DOUBLESEP), 2)
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("FromBytes: expected a header and content part")
@@ -47,21 +48,22 @@ func FromBytes(b []byte) (*Message, error) {
 		return nil, fmt.Errorf("failed to parse content: %v", err)
 	}
 
-	var body Body
-
-	// if method is provided, we'll set the body to one of the supported methods
-	if data.Method != "" {
-		switch data.Method {
-		case METHOD_INITIALIZE:
-			body = &InitializeRequest{}
-		case METHOD_COMPLETION:
-			body = &CompletionRequest{}
-		case METHOD_DID_SAVE:
-			body = &DidSaveTextNotification{}
+	getBody := func(method string) Body {
+		if method == "" {
+			return nil
 		}
+		if body := getNotificationBody(method); body != nil {
+			return body
+		}
+		if body := getRequestBody(method); body != nil {
+			return body
+		}
+		return nil
 	}
+	body := getBody(data.Method)
+
 	if body == nil {
-		return nil, fmt.Errorf("not implemented for method %q cl=%d", data.Method, header.ContentLength)
+		return nil, fmt.Errorf("not implemented for method %q data=%s", data.Method, string(b))
 	}
 	if err := json.Unmarshal(contentBytes, body); err != nil {
 		return nil, err
@@ -71,4 +73,7 @@ func FromBytes(b []byte) (*Message, error) {
 
 func (r *Message) String() string {
 	return fmt.Sprintf("%s\r\n%s", r.Header.Bytes(), r.Body.Bytes())
+}
+func (r *Message) Bytes() []byte {
+	return []byte(r.String())
 }

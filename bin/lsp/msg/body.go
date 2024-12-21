@@ -1,33 +1,13 @@
 package msg
 
-import "encoding/json"
-
 type Body interface {
 	Bytes() []byte
+	MethodName() string
 }
 
 // we've embedded the JsonRPC field into each struct to avoid
 // too much struct embeddings
 type (
-	Request[T any] struct {
-		JsonRPC string `json:"jsonrpc"`
-		Id      int    `json:"id"` // actually string | number, but we just use string
-		Method  string `json:"method"`
-		Params  T      `json:"params"`
-	}
-	Response[T any] struct {
-		JsonRPC string `json:"jsonrpc"`
-		Id      int    `json:"id"`
-		Result  T      `json:"result"`
-		Error   *Error `json:"error,omitempty"`
-	}
-	Notification[T any] struct {
-		JsonRPC string `json:"jsonrpc"`
-		// the method to be invoked
-		Method string `json:"method"`
-		// The notification's params
-		Params T `json:"Params"`
-	}
 	Error struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
@@ -36,68 +16,59 @@ type (
 
 	// everything is optional so we omit for now
 	TextDocument struct {
-		URI string `json:"uri"`
+		URI DocumentURI `json:"uri"`
+	}
+
+	DocumentURI      = string
+	TextDocumentItem struct {
+		URI DocumentURI `json:"uri"`
+		// e.g. "c", "go", "python", "dockerfile", ...
+		LanguageID string `json:"languageId"`
+		Version    int    `json:"version"`
+		Text       string `json:"text"`
+	}
+
+	TextDocumentIdentifier struct {
+		Uri DocumentURI `json:"uri"`
+	}
+	VersionedTextDocumentIdentifier struct {
+		TextDocumentIdentifier
+		Version int `json:"version"`
 	}
 	Position struct {
 		Line      int `json:"line"`
 		Character int `json:"character"`
 	}
+	Range struct {
+		Start Position `json:"start"`
+		End   Position `json:"end"`
+	}
+	TextDocumentPositionParams struct {
+		TextDocument TextDocumentIdentifier `json:"textDocument"`
+		Position     Position               `json:"position"`
+	}
+	TextDocumentContentChangeEvent struct {
+		// Range 	 Range `json:"range"`
+		// RangeLength int `json:"rangeLength"`
+
+		// we only operate on full text changes so the above variant
+		// does not apply
+		Text string `json:"text"`
+	}
+	// "markdown", "plaintext"
+	MarkupKind    = string
+	MarkupContent struct {
+		// "markdown", "plaintext"
+		Kind MarkupKind `json:"kind"`
+
+		// The content itself
+		Value string `json:"value"`
+	}
 )
 
 type (
-	InitializeRequest       = Request[InitializeParams]
-	CompletionRequest       = Request[CompletionParams]
-	DidSaveTextNotification = Notification[DidSaveTextDocumentParams]
+	CompletionRequest = Request[CompletionParams]
 )
-
-func (r *Response[T]) MarshalJSON() ([]byte, error) {
-	// when marshalling we'll auto-populate the JsonRPC field
-	type alias Response[T]
-	return json.Marshal(&struct {
-		JsonRPC string `json:"jsonrpc"`
-		*alias
-	}{
-		JsonRPC: "2.0",
-		alias:   (*alias)(r),
-	})
-}
-
-func (r *Request[T]) MarshalJSON() ([]byte, error) {
-	// when marshalling we'll auto-populate the JsonRPC field
-	type alias Request[T]
-	return json.Marshal(&struct {
-		JsonRPC string `json:"jsonrpc"`
-		*alias
-	}{
-		JsonRPC: "2.0",
-		alias:   (*alias)(r),
-	})
-}
-
-func (n *Notification[T]) MarshalJSON() ([]byte, error) {
-	// when marshalling we'll auto-populate the JsonRPC field
-	type alias Notification[T]
-	return json.Marshal(&struct {
-		JsonRPC string `json:"jsonrpc"`
-		*alias
-	}{
-		JsonRPC: "2.0",
-		alias:   (*alias)(n),
-	})
-}
-
-func (r *Request[T]) Bytes() []byte {
-	b, _ := json.Marshal(r)
-	return b
-}
-func (r *Response[T]) Bytes() []byte {
-	b, _ := json.Marshal(r)
-	return b
-}
-func (n *Notification[T]) Bytes() []byte {
-	b, _ := json.Marshal(n)
-	return b
-}
 
 // requests
 type (
@@ -115,62 +86,13 @@ const (
 
 // Structs related to the initialize request
 
-type (
-	InitializeParams struct {
-		ProcessId  int `json:"processId"`
-		ClientInfo `json:"clientInfo"`
-	}
-	ClientInfo struct {
-		Name    string `json:"name"`
-		Version string `json:"version"`
-	}
-
-	InitializeResult struct {
-		// required
-		Capabilities ServerCapabilities `json:"capabilities"`
-		// optional
-		ServerInfo `json:"serverInfo"`
-	}
-	ServerCapabilities struct {
-		// for convenience, should be TEXT_DOCUMENT_SYNC_KIND_FULL
-		TextDocumentSync int `json:"textDocumentSync"`
-	}
-	ServerInfo struct {
-		Name    string `json:"name"`
-		Version string `json:"version"`
-	}
-)
-
-type (
-	DidSaveTextDocumentParams struct {
-		TextDocument `json:"textDocument"`
-		Text         string `json:"text,omitempty"`
-	}
-)
-
 func NewCompletionRequest(id int, uri string, pos Position) *Request[CompletionParams] {
 	return &Request[CompletionParams]{
 		Id:     id,
-		Method: METHOD_COMPLETION,
+		Method: METHOD_REQUEST_COMPLETION,
 		Params: CompletionParams{
 			TextDocument: TextDocument{URI: uri},
 			Position:     pos,
 		},
-	}
-}
-
-func NewInitializeResult(id int) *Response[InitializeResult] {
-	return &Response[InitializeResult]{
-		Id: id,
-		Result: InitializeResult{
-			Capabilities: ServerCapabilities{
-				TextDocumentSync: TEXT_DOCUMENT_SYNC_KIND_FULL,
-			},
-			ServerInfo: ServerInfo{
-				Name:    "monkey-lsp",
-				Version: "1.0.0",
-			},
-		},
-		Error: nil,
 	}
 }
